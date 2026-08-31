@@ -5,9 +5,13 @@
 # model-driven dashboard) so nothing on camera takes longer than 30 seconds, verifies the
 # claims you are about to make on screen, and refuses to pass if any of them is false.
 #
-#   bash scripts/prep-recording.sh              # full prep (~8 min, rebuilds dashboard)
-#   bash scripts/prep-recording.sh --no-dash    # skip the dashboard rebuild (~7 min)
+#   bash scripts/prep-recording.sh              # full prep (~25 min, rebuilds dashboard)
+#   bash scripts/prep-recording.sh --no-dash    # skip the dashboard rebuild (~18 min)
 #   bash scripts/prep-recording.sh --offline    # deterministic only, no model calls (~1 min)
+#
+# Every claim in docs/PITCH.md that can be recomputed IS recomputed here. If you add a
+# number to the script, add its check below - a prep script that verifies a subset of the
+# claims gives false confidence about the rest.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -48,7 +52,47 @@ else
   bad "test suite FAILED - see $OUT/tests.txt"
 fi
 
-step "3. Deterministic run (the exactly-reproducible floor)"
+step "3. The evidence the pitch is built on (all fast, all deterministic)"
+
+# 0:32 slot - the four-arm ladder. Arm 2 gaining nothing is the whole answer to
+# "isn't this just smart retry?", so it is asserted rather than eyeballed.
+node src/robustness.ts --scenario baseline > "$OUT/ladder.txt" 2>&1
+if grep -qE '\| baseline +\| 49\.4% +\| 49\.4% +\| 56\.6% +\| 68\.8%' "$OUT/ladder.txt"; then
+  ok "ladder: 49.4 / 49.4 / 56.6 / 68.8 - arm 2 still gains nothing"
+else
+  bad "LADDER MOVED - docs/PITCH.md 0:32 table is now wrong. See $OUT/ladder.txt"
+  grep -E '^\| baseline' "$OUT/ladder.txt" | sed 's/^/      /'
+fi
+
+# 1:07 slot - the interval, run live on camera. Both the interval and the rank line.
+node src/seeds.ts --seeds 50 --cases 300 > "$OUT/seeds.txt" 2>&1
+if grep -q '19.8% \[19.1, 20.4\]' "$OUT/seeds.txt" && grep -q '50/50 seeds' "$OUT/seeds.txt"; then
+  ok "interval: +19.8 ppt [19.1, 20.4], 50/50 seeds"
+else
+  bad "INTERVAL MOVED - docs/PITCH.md 1:07 table is now wrong. See $OUT/seeds.txt"
+fi
+if grep -q '29 of 50' "$OUT/seeds.txt"; then
+  ok "published seed still ranks 29 of 50 (the line that answers cherry-picking)"
+else
+  bad "SEED RANK MOVED - do not say '29th of 50' on camera. See $OUT/seeds.txt"
+fi
+
+# 2:31 slot - eleven worlds, and the one we lose. Losing all-adverse is a CLAIM we
+# make on camera, so a run where it silently started winning must fail this check too.
+node src/robustness.ts > "$OUT/robustness.txt" 2>&1
+if grep -q '10 of 11' "$OUT/robustness.txt"; then
+  ok "robustness: lift established in 10 of 11 worlds"
+else
+  bad "ROBUSTNESS VERDICT MOVED - docs/PITCH.md 2:31 is now wrong. See $OUT/robustness.txt"
+  grep -A6 'VERDICT' "$OUT/robustness.txt" | sed 's/^/      /'
+fi
+if grep -qE '^\| all-adverse.*-7\.9' "$OUT/robustness.txt"; then
+  ok "all-adverse still -7.9 ppt (the world we lose, and say so)"
+else
+  bad "all-adverse row moved - check what you are about to claim on camera"
+fi
+
+step "4. Deterministic run (the exactly-reproducible floor)"
 node src/phase3.ts --cases 300 --deterministic-only > "$OUT/deterministic.txt" 2>&1
 det=$(grep -oE '^\| Recovery rate +\| [0-9.]+% +\| [0-9.]+%' "$OUT/deterministic.txt" | tail -1 || true)
 [ -n "$det" ] && ok "saved: $det" || bad "deterministic run produced no headline"
@@ -56,7 +100,7 @@ det=$(grep -oE '^\| Recovery rate +\| [0-9.]+% +\| [0-9.]+%' "$OUT/deterministic
 if [ "$OFFLINE" -eq 1 ]; then
   printf '\n\033[33mOFFLINE MODE: skipped the live model run. Present deterministic numbers only.\033[0m\n'
 else
-  step "4. LIVE model run (~7 min - this is why you run prep first)"
+  step "5. LIVE model run (~7 min - this is why you run prep first)"
   printf '   working'
   node src/phase3.ts --cases 300 > "$OUT/live.txt" 2>&1 &
   pid=$!
@@ -71,10 +115,35 @@ else
     grep -oE '(FALLBACK ONLY|PARTIALLY MODEL-DRIVEN)[^|]*' "$OUT/live.txt" | head -1 | sed 's/^/      /'
     printf '      \033[33mUse --offline and present the deterministic numbers instead.\033[0m\n'
   fi
+
+  step "6. LIVE generalization run (~15 min - the 1:31 slot shows this file)"
+  printf '   working'
+  node src/generalization.ts --cases 150 > "$OUT/generalization.txt" 2>&1 &
+  pid=$!
+  while kill -0 $pid 2>/dev/null; do printf '.'; sleep 10; done
+  wait $pid
+  printf '\n'
+  if grep -q 'MODEL-DRIVEN' "$OUT/generalization.txt"; then
+    ok "generalization is model-driven - this is the file you cat on camera"
+    # The over-confidence row is the most credible thing in the video. If a run ever
+    # produced zero of them, the honest response is to say so, not to keep the old line.
+    oc=$(grep -oE 'OVER-CONFIDENT, adopted anyway *\| *[0-9]+' "$OUT/generalization.txt" \
+         | grep -oE '[0-9]+$' || true)
+    [ -n "$oc" ] && ok "over-confident readings this run: $oc (say the number you SEE)" \
+                 || bad "could not read the over-confidence row - do not quote 13.8%"
+    if grep -qE 'unlocked a charge that can never succeed *\| *0 ' "$OUT/generalization.txt"; then
+      ok "zero impossible charges unlocked"
+    else
+      bad "a reading UNLOCKED AN IMPOSSIBLE CHARGE this run - the claim has changed"
+    fi
+  else
+    bad "generalization run is NOT model-driven. The 1:31 slot has no evidence."
+    printf '      \033[33mRe-run when quota returns, or cut the slot.\033[0m\n'
+  fi
 fi
 
 if [ "$REBUILD_DASH" -eq 1 ]; then
-  step "5. Dashboard, model-driven (~7 min)"
+  step "7. Dashboard, model-driven (~7 min)"
   printf '   working'
   node src/dashboard.ts --cases 300 --use-model > "$OUT/dashboard.txt" 2>&1 &
   pid=$!
@@ -90,7 +159,14 @@ else
   bad "no dashboard - run: node src/dashboard.ts --cases 300 --use-model"
 fi
 
-step "6. Provider budget left for the day"
+step "8. Chaos demo (a saved copy, in case Docker dies on camera)"
+if node src/chaos.ts --cases 250 > "$OUT/chaos.txt" 2>&1; then
+  ok "saved to $OUT/chaos.txt - the runsheet's fallback if Docker dies mid-take"
+else
+  bad "chaos demo FAILED - see $OUT/chaos.txt. Do not plan to run this live."
+fi
+
+step "9. Provider budget left for the day"
 node --env-file=.env -e "
 fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
  headers:{authorization:'Bearer '+process.env.GROQ_API_KEY,'content-type':'application/json'},
