@@ -3,64 +3,63 @@
 A script and shot list for the submission video. Every number below was recomputed from
 this repository on 2026-09-01, and the command that reproduces each one is in the margin.
 
-> **The frame for the whole pitch.** Most projects in this competition can tell you what
-> their system scored. Very few can tell you *which part of it earned the score*, or
-> *under what conditions the score stops holding*. We built the rig that answers both,
-> and it told us three things we did not want to hear. All three are in this script,
-> because a panel punishes overclaiming far more heavily than it punishes an honest
-> limit — and because the rig is the contribution.
+> **The frame for the whole pitch.** Most projects can tell you what their system scored.
+> Very few can tell you *which part of it earned the score*, or *when the score stops
+> holding*. This script answers both — at length where the answer is the strongest thing
+> we have, and briefly where it is unflattering. Each limit is stated once and not dwelt
+> on: a panel reads one honest sentence as confidence and three as an apology.
+>
+> **Timing.** 742 spoken words, about 287 seconds at a normal pitch pace, inside a
+> 300-second video. Every section is within a few seconds of its slot, with ~13 seconds
+> of breathing room spread across the whole thing. Re-measure if you rewrite a section.
 
 **Rule for the whole video:** the word *simulated* appears on screen in the first ten
 seconds and stays in the corner throughout.
 
 ---
 
-## 0:00 – 0:30 · The gap
+## 0:00 – 0:32 · The gap
 
 > Every subscription business in India loses money to payments that were never *refused*
-> — just fumbled. Insufficient funds on the 27th. A bank in its maintenance window. A
-> mandate revoked three months ago. Customers who intended to pay, lost to plumbing.
+> — just fumbled. Insufficient funds on the 27th. A bank in maintenance. A mandate revoked
+> three months ago. Customers who meant to pay, lost to plumbing.
 >
-> Razorpay's documented default for cards and UPI is a fixed **T+3 retry**. Their docs
-> say it exactly: *"In a T+3 days cycle, we will retry the payment thrice."* It is a
-> reasonable default. It is also completely context-free — it doesn't know *why* the
-> payment failed, *when* the customer has money, or *whether the rail is even up*.
+> Razorpay's documented default is a fixed **T+3 retry** — three tries, one a day. A
+> reasonable default, and completely context-free. It doesn't know *why* the payment
+> failed, *when* the customer has money, or *whether the rail is even up*.
 
 **On screen:** the T+3 cycle as four identical arrows into a wall.
 **Source:** [Razorpay Docs — Payment Retries](https://razorpay.com/docs/payments/subscriptions/payment-retries/)
 
 ---
 
-## 0:30 – 1:15 · Where the lift comes from — and the question you were about to ask
+## 0:32 – 1:07 · Where the lift comes from
 
-> Before the headline, the question you're already forming: *isn't this just smart retry?*
+> Before the headline — the question you're already forming: *isn't this just smart retry?*
 >
-> Here's the ladder. Four arms, each adding exactly one capability to the one before it.
+> Here's the ladder. Four arms, each adding one capability.
 
-| Arm | Recovery | Gained | Attempts | Gateway c/₹ |
-|---|---|---|---|---|
-| 1. fixed T+3 | 49.4% | — | 603 | 0.602p |
-| 2. **+ knows why it failed** | **49.4%** | **+0.0** | **603** | **0.602p** |
-| 3. + knows when they're paid | 56.6% | +7.2 | 474 | 0.364p |
-| 4. + the other six actions | 68.8% | +12.2 | 474 | 0.319p |
+| Arm | Recovery | Gained | Attempts |
+|---|---|---|---|
+| 1. fixed T+3 | 49.4% | — | 603 |
+| 2. **+ knows why it failed** | **49.4%** | **+0.0** | **603** |
+| 3. + knows when they're paid | 56.6% | +7.2 | 474 |
+| 4. + the other six actions | 68.8% | +12.2 | 474 |
 
-> Arm 2 **is** smart retry — it reads the failure class and refuses to charge a cause no
-> retry can clear. It gains **nothing**. Not because the idea is wrong, but because our
-> policy gate already enforces it *for the control arm too*. Run the control and read its
-> rule counts: `TERMINAL_CLASS_NO_CHARGE` fires 99 times on 300 cases.
+> Arm two **is** smart retry. It gains **nothing** — because our policy gate already
+> enforces it for the control arm too. `TERMINAL_CLASS_NO_CHARGE` fires 99 times on 300
+> cases.
 >
-> So the answer isn't that we beat smart retry. It's that **our baseline already is smart
-> retry** — we never switched the gate off to flatter ourselves — and the twenty points
-> are measured against that.
->
-> The lift is timing and the action space, not the diagnosis.
+> So we don't beat smart retry. **Our baseline already is smart retry**, and the twenty
+> points are measured against that. The lift is timing and the action space — not the
+> diagnosis.
 
 **On screen:** the four-row ladder, arm 2 highlighted as identical to arm 1.
 **Command:** `node src/robustness.ts --scenario baseline`
 
 ---
 
-## 1:15 – 1:50 · The result, with an interval
+## 1:07 – 1:31 · The result, with an interval
 
 > Fifty independent cohorts. Fifteen thousand simulated failed charges.
 
@@ -68,180 +67,116 @@ seconds and stays in the corner throughout.
 |---|---|---|---|---|
 | Recovery | 49.1% | 68.9% | **+19.8 ppt [19.1, 20.4]** | **50 / 50** |
 | Gateway cost per ₹ | 0.627p | 0.333p | −0.293p [−0.316, −0.271] | 50 / 50 |
-| Attempts | 599 | 474 | −125 [−129, −121] | 50 / 50 |
 
-> Paired bootstrap over the seeds — both arms run on the *same* cohort, so a seed drawing
-> many dead mandates depresses both together and the difference cancels it.
+> Paired bootstrap — both arms run the same cohort, so a bad seed hits both and the
+> difference cancels it.
 >
-> And the seed we quote elsewhere ranks **29th of 50** by lift. Middle of its own
-> distribution, not the tail. We checked, because you shouldn't have to take our word for
-> which one we picked.
+> And the seed we quote elsewhere ranks **29th of 50**. Middle of its own distribution.
+> We checked, so you don't have to take our word for which one we picked.
 
 **On screen:** the per-seed lift distribution, seed 20260101 marked.
 **Command:** `node src/seeds.ts --seeds 50 --cases 300` *(under a second, no API key)*
 
 ---
 
-## 1:50 – 2:35 · What the language model is actually for
+## 1:31 – 2:31 · What the language model is actually for
 
 > Now the uncomfortable part.
 >
-> On failure classes our taxonomy already maps, we ran the agent with the model on and
-> off. Model off: **70.7%, exactly reproducible.** Model on, three runs: 72.0%, 70.0%,
-> 68.0%. **The model's effect is inside its own run-to-run noise.** We're not claiming it.
-> Essentially all of that lift is deterministic machinery.
+> On failures our taxonomy already maps, we ran the agent with the model on and off. Off:
+> **70.7%, exactly reproducible.** On: 72, 70, 68. **The model's effect is inside its own
+> noise.** We're not claiming it.
 >
-> That's an honest finding and an incomplete one — it tests the model on the lookup
-> table's home ground, where a lookup table should win. The real question is what happens
-> where the table has **no row**.
->
-> So we changed the rail's vocabulary. New acquirer, codes we've never mapped. This isn't
-> hypothetical — NPCI's NACH codes are unmapped in this build today.
+> But that tests it on the lookup table's home ground. The real question is where the
+> table has **no row**. So we changed the rail's vocabulary — codes we've never mapped.
+> Not hypothetical: NPCI's NACH codes are unmapped in this build today.
 
 | Arm, unmapped vocabulary | Recovery | To a human |
 |---|---|---|
 | Mapped vocabulary (the ceiling) | 73.3% | 1 |
-| Control T+3 | **0.0%** | 0 |
-| SALVAGE, model **off** | **0.0%** | 150 |
-| SALVAGE, model **reading the codes** | **62.7%** | 25 |
+| Control T+3 · SALVAGE model **off** | **0.0%** | 0 · 150 |
+| SALVAGE **reading the codes** | **62.7%** | 25 |
 
-> Everything collapses. Every failure is unclassified, an unclassified failure is never
-> auto-retried, and the whole cohort goes to a human. The deterministic system doesn't
-> fail here because it's badly written — it **structurally cannot read unfamiliar prose**.
+> Everything collapses to zero. The deterministic system **structurally cannot read
+> unfamiliar prose**. The model can — it recovers **85% of the ground lost**.
 >
-> The model can. It recovers **85.5% of the ground the unknown vocabulary cost**.
->
-> And we score it on both halves of the job, because a model that never says "I don't
-> know" authorises charges against mandates that can never carry them. **88.3%** of
-> legible text read correctly, **zero** misreads into different handling. **86.2%** of
-> *illegible* text correctly declined — and the **13.8% it over-read is on screen**. All
-> four are the same string: *"amount not acceptable"*, read as `AMOUNT_EXCEEDS_MANDATE`.
-> Which is exactly the conflation our own taxonomy warns about for Razorpay's
-> `invalid_amount`.
->
-> Of 192 adopted readings, **192 landed on the right side of "can a charge ever work?"**
-> Zero impossible charges unlocked.
+> And we score refusal, not just comprehension: **88%** of legible text read correctly,
+> **86%** of *illegible* text correctly declined. The **14% it over-read is on screen** —
+> all four the same string, *"amount not acceptable"*. Zero impossible charges unlocked.
 
 **On screen:** the collapse-to-zero, then the recovery; then the over-confidence row.
 **Command:** `node src/generalization.ts --cases 150`
 
 ---
 
-## 2:35 – 3:15 · Where we're wrong, and where it breaks
+## 2:31 – 2:59 · Where we're wrong
 
-> We wrote the simulator *and* the policy. If the agent's beliefs and the world's
-> behaviour come from the same constants, the result is a tautology. That's the sharpest
-> objection to a project like this, and it's literally true of one function in our code.
+> We wrote the simulator *and* the policy — so we split them, and broke the world eleven
+> ways without telling the agent.
 >
-> So we split them. The simulator reads its own parameters; the agent still reads its
-> assumptions file and has no access to the world. Then we broke the world eleven
-> different ways without telling the agent.
+> **The lift survives ten.** In the eleventh, T+3 *improves* to 75% and we lose — a world
+> where daily retry works and our problem doesn't exist.
 >
-> **The lift survives in ten of eleven.** Here's the eleventh.
+> So: **worth having where balance shortfalls persist.** And above **₹3.27 a contact**
+> we're the expensive option. We ship both curves.
 
-| World | T+3 | SALVAGE | Lift |
-|---|---|---|---|
-| baseline | 49.4% | 68.8% | +19.4 |
-| shortfall-transient | 56.3% | 64.1% | +7.8 |
-| slow customers | 49.4% | 67.3% | +17.9 |
-| **all-adverse** | **74.9%** | **67.0%** | **−7.9** |
-
-> In `all-adverse` we lose, by eight points. And look **why** — T+3 doesn't get worse
-> there, it gets *better*, from 49% to 75%.
->
-> That world is one where balance shortfalls clear on their own and accounts deplete
-> immediately. Which is a world where blind daily retry genuinely works, and **the problem
-> we built this to solve doesn't really exist.** Our own assumptions file predicted it:
-> *"if balances were independent day to day, the fixed T+3 policy would already be
-> near-optimal and this whole project would have no thesis."*
->
-> So the honest claim is conditional: **SALVAGE is worth having where balance shortfalls
-> persist.** That's a testable property of a real portfolio, and it's the first thing
-> you'd measure before deploying any of this.
->
-> One more we won't hide. On the **all-in** measure, which prices customer patience, the
-> agent is **worse** — 1.245p against 2.483p. The two curves cross when a customer contact
-> is worth about **₹3.27**. We priced one at **₹15**, deliberately, so messaging could
-> never be the cheap default. That choice is what puts us on the losing side of that line.
-> The argument worth having is about the price of a contact, not the cost ratio — so we
-> ship the curve.
-
-**On screen:** the eleven-world table, then the break-even chart with the crossover marked.
+**On screen:** the two-row table, then the break-even chart with the crossover marked.
 **Command:** `node src/robustness.ts` · `node src/dashboard.ts && open out/dashboard.html`
 
 ---
 
-## 3:15 – 3:50 · The guardrails, and the one thing that isn't simulated
+## 2:59 – 3:54 · The guardrails, and the one thing that isn't simulated
 
 > Every action passes a deterministic policy gate the agent cannot argue past. It blocked
-> 108 actions on this run — 99 retries against terminal mandates, 9 charges on failures
-> nobody could classify.
+> 108 actions here — 99 retries against dead mandates, 9 charges on failures nobody could
+> classify.
 >
-> That last one matters. We mapped Razorpay's **real documented** recurring-payment error
-> reasons. Nine of the eighteen are too ambiguous to map — *"declined due to business or
-> technical reasons"* could be anything — so they classify as UNKNOWN, and **an unknown
-> failure is never automatically retried.**
+> We mapped Razorpay's **real documented** error reasons. Nine of the eighteen are too
+> ambiguous to map — *"declined due to business or technical reasons"* could be anything —
+> so they're UNKNOWN, and **an unknown failure is never automatically retried.**
 >
-> And that's the one claim here that doesn't rest on the simulator. There's an adapter
-> that takes Razorpay's documented webhook envelope, pulls the failure reason off the
-> payment entity, and hands it to the *same* classifier our simulated codes go through.
-> All eighteen documented reasons are tested through it.
+> That's the one claim here that isn't simulated: an adapter takes Razorpay's documented
+> webhook shape and hands the reason to the same classifier. All eighteen tested through
+> it. What we have **not** done is call their API — not even test mode.
 >
-> What we have **not** done is call their API — not even test mode. That needs an account,
-> and the document says exactly what a first run would settle.
->
-> The RBI parameters are sourced, not invented: pre-transaction notification at least 24
-> hours before the debit, Section 6 of the **E-mandate Framework, 2026**, which replaced
-> the 2019 circular most people still cite.
->
-> One honest caveat. That framework applies to *cards, PPI and UPI* — it doesn't name
-> NACH, so we apply the rule only to the rails it names. And it says **nothing at all**
-> about retries. We're not claiming to have found a compliance gap — we're saying the
-> document doesn't answer the question, so we implemented both readings behind a flag.
+> RBI parameters are sourced with section numbers, from the **2026 E-mandate Framework**.
+> It's silent on retries, so we implemented both readings — we're not claiming a
+> compliance gap.
 
 **On screen:** the policy-gate rule table, then the 18 reasons flowing through the adapter.
 **Sources:** [E-mandate Framework, 2026](https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=13374) · [Razorpay eMandate errors](https://razorpay.com/docs/payments/recurring-payments/emandate/errors/)
 
 ---
 
-## 3:50 – 4:25 · It survives being killed
+## 3:54 – 4:18 · It survives being killed
 
 > This runs on a real durable spine — Postgres, Redis, worker containers.
 >
-> *[run the chaos demo live]*
+> *[run the chaos demo live — let it breathe, the terminal is the point]*
 >
 > We `docker kill` an executor with SIGKILL while it's holding charges in flight. No
 > handler runs. The survivor finishes the batch.
 >
-> **Zero duplicate charges. Zero lost cases. And the event log still reconstructs case
-> state exactly** — checked against the *gateway's* own ledger, in its own table, not ours.
+> **Zero duplicate charges. Zero lost cases.** And the event log still reconstructs case
+> state exactly — checked against the *gateway's* own ledger, not ours.
 
 **On screen:** the terminal, live.
 **Command:** `node src/chaos.ts --cases 250`
 
 ---
 
-## 4:25 – 5:00 · The audit trail, and the close
+## 4:18 – 5:00 · The audit trail, and the close
 
-> Open any case and walk the chain: what the agent saw, what it proposed, what the gate
-> ruled, what executed.
+> Open any case and walk the chain. A revoked mandate: the fixed policy proposes a retry,
+> the gate refuses it **by name**, and the case stops instead of burning three more fees.
 >
-> Here's a revoked mandate. The fixed policy proposes a retry. The gate refuses it by name
-> — `TERMINAL_CLASS_NO_CHARGE` — and the case stops instead of burning three more fees.
+> So what did we build? **A measurement rig, and an agent worth measuring** — twenty points
+> at half the gateway cost, against a control that already declines every impossible
+> charge, across fifty cohorts and ten of eleven broken worlds.
 >
-> So — what did we build?
->
-> **A measurement rig, and a recovery agent worth measuring.** The agent is worth about
-> twenty points of recovery at half the gateway cost, on a control arm that already
-> declines every impossible charge, holding across fifty cohorts and ten of eleven broken
-> worlds.
->
-> And the rig is what lets us tell you the rest: that the language model contributes
-> nothing on failures we already understand, and 85% of the recoverable ground on
-> failures we don't. That we lose in the world where our central assumption is false. That
-> we cost more per rupee once you price customer patience above ₹3.27.
->
-> Most projects can't separate those things. That's the part we'd want you to take.
+> And the rig is what lets us say the sharper thing: the model contributes **nothing** on
+> failures we already understand, and **85%** of the recoverable ground on failures we
+> don't. Two verdicts on one model, because we could tell them apart. Most projects can't.
 
 **On screen:** the audit trail — *proposed: RETRY_NOW → executed: STOP · DENY ·
 TERMINAL_CLASS_NO_CHARGE*.
