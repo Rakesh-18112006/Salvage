@@ -1,0 +1,69 @@
+# Phase 2 durable spine. Ports are deliberately non-default so this never collides with
+# a Postgres or Redis the developer already has running locally.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: salvage-postgres
+    environment:
+      POSTGRES_USER: salvage
+      POSTGRES_PASSWORD: salvage
+      POSTGRES_DB: salvage
+    ports:
+      - '55432:5432'
+    volumes:
+      - salvage-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U salvage -d salvage']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: salvage-redis
+    # BullMQ requires eviction to be disabled: a queue whose keys can be evicted is a
+    # queue that silently loses jobs.
+    command: ['redis-server', '--maxmemory-policy', 'noeviction', '--appendonly', 'yes']
+    ports:
+      - '56379:6379'
+    volumes:
+      - salvage-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # The process the chaos demo kills. Under a profile so a normal `docker compose up`
+  # does not start it - Phases 1-4 run workers in-process; only Phase 5 needs a container
+  # that can be killed from outside.
+  #
+  #   docker compose --profile chaos up -d --scale worker=2
+  #
+  # The repo is mounted read-only and node_modules with it: every runtime dependency
+  # (pg, ioredis, bullmq) is pure JavaScript, so the host's install works unchanged in
+  # the container and the demo needs no image build.
+  worker:
+    image: node:24-alpine
+    profiles: ['chaos']
+    working_dir: /app
+    command: ['node', 'src/worker.ts', '--seed', '${SALVAGE_SEED:-20260101}', '--concurrency', '4']
+    environment:
+      DATABASE_URL: postgres://salvage:salvage@postgres:5432/salvage
+      REDIS_URL: redis://redis:6379
+      SALVAGE_MS_PER_SIM_HOUR: '${SALVAGE_MS_PER_SIM_HOUR:-4}'
+      # A real gateway call is not instantaneous. Without this the crash window is
+      # sub-millisecond and "killed mid-flight" cannot actually be demonstrated.
+      SALVAGE_RAIL_LATENCY_MS: '${SALVAGE_RAIL_LATENCY_MS:-180}'
+      RAZORPAY_WEBHOOK_SECRET: chaos_demo_secret
+    volumes:
+      - .:/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  salvage-pgdata:
+  salvage-redisdata:

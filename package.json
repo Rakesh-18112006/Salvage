@@ -1,0 +1,46 @@
+{
+  "name": "salvage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SALVAGE - autonomous payment recovery for Indian recurring mandates. Phase 1: seeded simulator + T+3 control baseline.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "baseline": "node src/main.ts --cases 300 --seed 20260101",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node --test test/units.test.ts test/determinism.test.ts test/cohort.test.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "node src/db/migrate.ts",
+    "db:reset": "node src/db/migrate.ts --reset",
+    "phase2": "node src/phase2.ts",
+    "webhook": "node src/webhook/server.ts",
+    "phase3": "node src/phase3.ts --cases 300",
+    "phase3:offline": "node src/phase3.ts --cases 300 --deterministic-only",
+    "eval": "RUN_LLM_EVAL=1 node --test test/agentEval.test.ts",
+    "generalization": "node src/generalization.ts --cases 150",
+    "generalization:offline": "node src/generalization.ts --cases 150 --deterministic-only",
+    "seeds": "node src/seeds.ts --seeds 50 --cases 300",
+    "dashboard": "node src/dashboard.ts --cases 300",
+    "chaos": "node src/chaos.ts --cases 250",
+    "chaos:up": "docker compose --profile chaos up -d --scale worker=2",
+    "chaos:down": "docker compose --profile chaos down",
+    "prep": "bash scripts/prep-recording.sh",
+    "prep:offline": "bash scripts/prep-recording.sh --offline"
+  },
+  "dependencies": {
+    "@google/genai": "^2.19.0",
+    "bullmq": "^6.3.2",
+    "ioredis": "^6.0.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/pg": "^8.23.1",
+    "typescript": "^5.9.2"
+  }
+}

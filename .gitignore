@@ -1,0 +1,7 @@
+node_modules/
+out/
+*.log
+
+# Secrets. .env.example is committed; .env never is.
+.env
+.env.local
