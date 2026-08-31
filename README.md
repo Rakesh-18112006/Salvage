@@ -89,18 +89,44 @@ and the whole cohort escalates to a human.
 Under a synthetic unmapped dialect ([`src/eval/railDialect.ts`](src/eval/railDialect.ts)),
 on the same cohort:
 
-| Arm | Recovery | Taxonomy coverage |
-|---|---|---|
-| Mapped vocabulary, SALVAGE (the ceiling) | 73.3% | 100% |
-| **Unmapped**, control T+3 | 0.0% | 0% |
-| **Unmapped**, SALVAGE with the model OFF | 0.0% | 0% |
-| **Unmapped**, SALVAGE reading the codes | see below | 0% |
+Seed `20260101`, 150 cases. Live model-driven run on Groq `openai/gpt-oss-120b`,
+33 live calls, 184 cached, 0 fallbacks.
 
-The deterministic system does not fail here because it is badly written. It **structurally
+| Arm | Recovery | To a human | Taxonomy coverage |
+|---|---|---|---|
+| Mapped vocabulary, SALVAGE (the ceiling) | 73.3% | 1 | 100% |
+| **Unmapped**, control T+3 | 0.0% | 0 | 0% |
+| **Unmapped**, SALVAGE with the model OFF | 0.0% | 150 | 0% |
+| **Unmapped**, SALVAGE **reading the codes** | **62.7%** | 25 | 0% |
+
+**+62.7 ppt, which is 85.5% of the ground the unmapped vocabulary cost.** The
+deterministic system does not fail here because it is badly written — it **structurally
 cannot** read unfamiliar prose. A language model can. That is the one job in this system
-where it is the right tool, and the eval scores it on both halves of that job —
-comprehension on legible text, *and* refusal on illegible text, because a model that never
-answers "I don't know" authorises charges against mandates that can never carry them.
+where it is the right tool.
+
+And it is scored on *both* halves of that job, because a model that never answers "I don't
+know" authorises charges against mandates that can never carry them:
+
+| Scored against what the text supports | Result |
+|---|---|
+| Text that states a cause — read correctly | **88.3%** (166 / 188) |
+| — misread, but the same prescribed handling | 11.7% (22) |
+| — misread into *different* handling | **0** |
+| Text that states nothing — correctly declined | **86.2%** (25 / 29) |
+| — **over-confident, adopted anyway** | **13.8% (4)** |
+
+| Scored against the simulator's hidden truth | Result |
+|---|---|
+| Adopted readings on the right side of "can a charge ever work?" | **192 / 192** |
+| Readings that unlocked a charge that can never succeed | **0** |
+| Cases needing a human | 150 → **25** |
+
+The four over-confident readings are all the same string — `"amount not acceptable"` read
+as `AMOUNT_EXCEEDS_MANDATE`. That is exactly the conflation the taxonomy warns about in
+its own notes on Razorpay's `invalid_amount`: an unsupported amount is not the same thing
+as an amount above the mandate cap. The model over-reached, the eval caught it, and the
+number is printed rather than averaged away. Raising `--min-confidence` trades recovery
+for a smaller number there.
 
 ```bash
 node src/generalization.ts --cases 150                      # live
@@ -173,6 +199,10 @@ The detail that used to live in this file now lives beside the code it describes
 - On a seeded simulated population, choosing among nine actions beats a fixed T+3 retry
   by ~20 percentage points of recovery, at roughly half the gateway cost per rupee, with
   a confidence interval and 50/50 cohorts agreeing.
+- The language model earns its place in **one specific job**: reading rail responses the
+  taxonomy has never mapped, where a lookup table structurally cannot help. On that
+  cohort it recovers 85.5% of the ground the unknown vocabulary cost, and it declines to
+  guess on 86.2% of the responses that establish no cause.
 - The lift is **deterministic and exactly reproducible**. Same seed, same numbers, any
   machine.
 - Razorpay's real documented recurring-payment error reasons are mapped, and the nine
@@ -185,8 +215,15 @@ The detail that used to live in this file now lives beside the code it describes
 
 **It does not claim:**
 
-- That the language model produced the recovery lift. It did not; its effect is inside
-  run-to-run noise, and Phase 3 reports that instead of averaging it away.
+- That the language model produced the ~20 ppt recovery lift. It did not; on failure
+  classes the taxonomy already maps, its effect is inside run-to-run noise, and Phase 3
+  reports that instead of averaging it away. Its measured value is confined to the
+  unmapped-vocabulary case above.
+- That the generalization result is a general claim about language models. The unmapped
+  dialect is **our own invention**, and the labels it is scored against are our own
+  judgement about what each string supports. A real unmapped rail could be harder or
+  easier. What the eval establishes is the *shape* of the trade-off and a method for
+  measuring it, not a number that transfers.
 - That these are production numbers, or that any real money moved. All data is simulated
   and labelled as such everywhere it appears.
 - That we found a compliance gap in Razorpay's T+3. The 2026 framework is **silent on

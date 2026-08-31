@@ -63,8 +63,15 @@ src/
   webhook/
     verify.ts           HMAC over the RAW body, timing-safe compare
     server.ts           node:http ingress; verify, dedupe, 200, process later
+  eval/                 ############ EVIDENCE ABOUT THE MODEL ############
+    railDialect.ts      a SYNTHETIC rail vocabulary the taxonomy has never mapped,
+                        with per-response labels for what the text does and does
+                        not establish. Our invention; no real code appears in it.
+  stats.ts              paired percentile bootstrap; no distributional assumption
   phase2.ts             Phase 2 entrypoint
   phase3.ts             Phase 3 entrypoint: control vs agent
+  seeds.ts              50-cohort intervals: is the lift real, or one lucky draw?
+  generalization.ts     what the model is worth where the lookup table has no row
 migrations/
   001_init.sql          the schema IS the specification of the guarantees
   002_rail_ledger.sql   the simulated gateway's own memory
@@ -79,4 +86,6 @@ test/
   agent.test.ts         guard rails, triage, caching, fallback (stub model, offline)
   agentEval.test.ts     the spec's three judgment scenarios
   policyGate.test.ts    the adversarial cases; every rule asserted by name
+  generalization.test.ts  what a model's reading of an unmapped code may NOT do
+  stats.test.ts         the intervals behind every headline in the README
 ```
