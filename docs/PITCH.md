@@ -1,141 +1,210 @@
 # SALVAGE — 5-minute pitch
 
-A script and shot list for the submission video. Every number below was verified against
-the source code and recomputed independently on 2026-08-31; the commands that reproduce
-each one are in the margin.
+A script and shot list for the submission video. Every number below was recomputed from
+this repository on 2026-09-01, and the command that reproduces each one is in the margin.
 
-> **The numbers in this script come from a LIVE, MODEL-DRIVEN run** on Groq
-> (`openai/gpt-oss-120b`): 48 live calls, 202 served from the decision cache, 0 fallbacks.
-> Verified by the RESULT PROVENANCE block, which reports `MODEL-DRIVEN`. The deterministic
-> figures are also given, because the difference between them is what the model is worth.
+> **The frame for the whole pitch.** Most projects in this competition can tell you what
+> their system scored. Very few can tell you *which part of it earned the score*, or
+> *under what conditions the score stops holding*. We built the rig that answers both,
+> and it told us three things we did not want to hear. All three are in this script,
+> because a panel punishes overclaiming far more heavily than it punishes an honest
+> limit — and because the rig is the contribution.
 
 **Rule for the whole video:** the word *simulated* appears on screen in the first ten
-seconds and stays in the corner throughout. A panel punishes overclaiming far more
-heavily than it punishes synthetic data honestly labelled.
+seconds and stays in the corner throughout.
 
 ---
 
-## 0:00 – 0:35 · The gap
+## 0:00 – 0:30 · The gap
 
-> Every subscription business in India loses money to payments that were never *refused* —
-> just fumbled. Insufficient funds on the 27th. A bank in its maintenance window. A
-> mandate the customer revoked three months ago. Customers who intended to pay, lost to
-> plumbing.
+> Every subscription business in India loses money to payments that were never *refused*
+> — just fumbled. Insufficient funds on the 27th. A bank in its maintenance window. A
+> mandate revoked three months ago. Customers who intended to pay, lost to plumbing.
 >
 > Razorpay's documented default for cards and UPI is a fixed **T+3 retry**. Their docs
-> say it exactly: *"In a T+3 days cycle, we will retry the payment thrice. That is, once
-> every day for 3 days, excluding the date of the charge."* It's a reasonable default. It
-> is also completely context-free — it doesn't know *why* the payment failed, *when* the
-> customer has money, or *whether the rail is even up*.
+> say it exactly: *"In a T+3 days cycle, we will retry the payment thrice."* It is a
+> reasonable default. It is also completely context-free — it doesn't know *why* the
+> payment failed, *when* the customer has money, or *whether the rail is even up*.
 
 **On screen:** the T+3 cycle as four identical arrows into a wall.
 **Source:** [Razorpay Docs — Payment Retries](https://razorpay.com/docs/payments/subscriptions/payment-retries/)
 
 ---
 
-## 0:35 – 1:10 · The number that makes the case
+## 0:30 – 1:15 · Where the lift comes from — and the question you were about to ask
 
-> Here's what that costs. On a seeded cohort of 300 genuinely-failed charges, a third of
-> the failures are **terminal** — a revoked mandate, a dead card, a charge above the
-> mandate cap. No retry can ever succeed against them.
+> Before the headline, the question you're already forming: *isn't this just smart retry?*
 >
-> The fixed policy doesn't know that. Every attempt it spends there is a guaranteed loss
-> that still costs a fee.
+> Here's the ladder. Four arms, each adding exactly one capability to the one before it.
 
-**On screen:** the failure-class table, terminal rows highlighted.
-**Command:** `node src/main.ts --cases 300 --seed 20260101`
+| Arm | Recovery | Gained | Attempts | Gateway c/₹ |
+|---|---|---|---|---|
+| 1. fixed T+3 | 49.4% | — | 603 | 0.602p |
+| 2. **+ knows why it failed** | **49.4%** | **+0.0** | **603** | **0.602p** |
+| 3. + knows when they're paid | 56.6% | +7.2 | 474 | 0.364p |
+| 4. + the other six actions | 68.8% | +12.2 | 474 | 0.319p |
+
+> Arm 2 **is** smart retry — it reads the failure class and refuses to charge a cause no
+> retry can clear. It gains **nothing**. Not because the idea is wrong, but because our
+> policy gate already enforces it *for the control arm too*. Run the control and read its
+> rule counts: `TERMINAL_CLASS_NO_CHARGE` fires 99 times on 300 cases.
+>
+> So the answer isn't that we beat smart retry. It's that **our baseline already is smart
+> retry** — we never switched the gate off to flatter ourselves — and the twenty points
+> are measured against that.
+>
+> The lift is timing and the action space, not the diagnosis.
+
+**On screen:** the four-row ladder, arm 2 highlighted as identical to arm 1.
+**Command:** `node src/robustness.ts --scenario baseline`
 
 ---
 
-## 1:10 – 2:00 · The thesis, and the action space
+## 1:15 – 1:50 · The result, with an interval
 
-> So we stopped treating this as a retry problem. A failed recurring payment is a
-> **bounded decision problem** under cost, compliance, and customer-patience constraints.
->
-> Retry is one of nine actions, not the default. Defer past an outage. Time-shift to the
-> customer's payday. Re-mandate. Payment link. Notify. Escalate. Stop.
->
-> And **wait**. Doing nothing is a first-class action — because some customers fix it
-> themselves, and every intervention costs money and patience.
+> Fifty independent cohorts. Fifteen thousand simulated failed charges.
 
-**On screen:** the action-space diagram; `WAIT` pulses.
+| Metric | Control | SALVAGE | Paired difference (95% CI) | Seeds won |
+|---|---|---|---|---|
+| Recovery | 49.1% | 68.9% | **+19.8 ppt [19.1, 20.4]** | **50 / 50** |
+| Gateway cost per ₹ | 0.627p | 0.333p | −0.293p [−0.316, −0.271] | 50 / 50 |
+| Attempts | 599 | 474 | −125 [−129, −121] | 50 / 50 |
+
+> Paired bootstrap over the seeds — both arms run on the *same* cohort, so a seed drawing
+> many dead mandates depresses both together and the difference cancels it.
+>
+> And the seed we quote elsewhere ranks **29th of 50** by lift. Middle of its own
+> distribution, not the tail. We checked, because you shouldn't have to take our word for
+> which one we picked.
+
+**On screen:** the per-seed lift distribution, seed 20260101 marked.
+**Command:** `node src/seeds.ts --seeds 50 --cases 300` *(under a second, no API key)*
 
 ---
 
-## 2:00 – 2:45 · What the model does — and what it is forbidden to do
+## 1:50 – 2:35 · What the language model is actually for
 
-> The model does diagnosis and strategy. It does **not** do arithmetic.
+> Now the uncomfortable part.
 >
-> It's never asked "retry in how many hours?" It's asked "should this wait for the
-> customer's money to arrive?" When the next payday falls, what each action costs, the
-> expected value of each option — all deterministic code.
+> On failure classes our taxonomy already maps, we ran the agent with the model on and
+> off. Model off: **70.7%, exactly reproducible.** Model on, three runs: 72.0%, 70.0%,
+> 68.0%. **The model's effect is inside its own run-to-run noise.** We're not claiming it.
+> Essentially all of that lift is deterministic machinery.
 >
-> And the model never runs over the full ledger. Roughly 40% of decisions are settled by
-> the taxonomy before a model is involved, identical contexts are answered once and
-> cached, and when the API is unavailable a deterministic policy takes over so **every
-> case still resolves**.
+> That's an honest finding and an incomplete one — it tests the model on the lookup
+> table's home ground, where a lookup table should win. The real question is what happens
+> where the table has **no row**.
+>
+> So we changed the rail's vocabulary. New acquirer, codes we've never mapped. This isn't
+> hypothetical — NPCI's NACH codes are unmapped in this build today.
 
-**On screen:** the two-column "model supplies / code supplies" table.
+| Arm, unmapped vocabulary | Recovery | To a human |
+|---|---|---|
+| Mapped vocabulary (the ceiling) | 73.3% | 1 |
+| Control T+3 | **0.0%** | 0 |
+| SALVAGE, model **off** | **0.0%** | 150 |
+| SALVAGE, model **reading the codes** | **62.7%** | 25 |
+
+> Everything collapses. Every failure is unclassified, an unclassified failure is never
+> auto-retried, and the whole cohort goes to a human. The deterministic system doesn't
+> fail here because it's badly written — it **structurally cannot read unfamiliar prose**.
+>
+> The model can. It recovers **85.5% of the ground the unknown vocabulary cost**.
+>
+> And we score it on both halves of the job, because a model that never says "I don't
+> know" authorises charges against mandates that can never carry them. **88.3%** of
+> legible text read correctly, **zero** misreads into different handling. **86.2%** of
+> *illegible* text correctly declined — and the **13.8% it over-read is on screen**. All
+> four are the same string: *"amount not acceptable"*, read as `AMOUNT_EXCEEDS_MANDATE`.
+> Which is exactly the conflation our own taxonomy warns about for Razorpay's
+> `invalid_amount`.
+>
+> Of 192 adopted readings, **192 landed on the right side of "can a charge ever work?"**
+> Zero impossible charges unlocked.
+
+**On screen:** the collapse-to-zero, then the recovery; then the over-confidence row.
+**Command:** `node src/generalization.ts --cases 150`
 
 ---
 
-## 2:45 – 3:20 · The result
+## 2:35 – 3:15 · Where we're wrong, and where it breaks
 
-> Same seeded population, both arms, identical world.
+> We wrote the simulator *and* the policy. If the agent's beliefs and the world's
+> behaviour come from the same constants, the result is a tautology. That's the sharpest
+> objection to a project like this, and it's literally true of one function in our code.
 >
-> Recovery goes from **50.3% to about 71%** — call it **+20 percentage points**, roughly a
-> 40% relative improvement. **19% fewer attempts.** Gateway cost per rupee recovered down
-> **47%**.
+> So we split them. The simulator reads its own parameters; the agent still reads its
+> assumptions file and has no access to the world. Then we broke the world eleven
+> different ways without telling the agent.
 >
-> And we can tell you what the language model is actually worth, because we ran the agent
-> both ways on the same cohort. With the model off entirely it reaches **70.7%, every
-> time**. With the model on, three runs gave **72.0%, 70.0% and 68.0%** — and on that last
-> one the model did *worse* than no model at all.
->
-> So the model's contribution is **well inside its own run-to-run variance**, and we're not
-> going to claim it as a win. Essentially all of this lift comes from the deterministic
-> machinery — the taxonomy, the cost model, the policy gate. That's a less exciting
-> sentence than "the AI did it", and it's the one the evidence supports.
->
-> And here's the part we won't hide: on the *all-in* measure, which prices customer
-> patience and friction, the agent is **worse — 1.245p to 2.697p per rupee**. It recovers
-> more money at a higher modelled human cost. That's a real trade-off, and whether it's
-> worth it depends on what you think a customer message costs — which is exactly why we
-> report it instead of averaging it away. We ship the sensitivity table too.
+> **The lift survives in ten of eleven.** Here's the eleventh.
 
-**On screen:** the headline comparison, then the all-in row deliberately lingered on.
-**Command:** `node src/phase3.ts --cases 300` (~7 min — run it before you record and show the output)
+| World | T+3 | SALVAGE | Lift |
+|---|---|---|---|
+| baseline | 49.4% | 68.8% | +19.4 |
+| shortfall-transient | 56.3% | 64.1% | +7.8 |
+| slow customers | 49.4% | 67.3% | +17.9 |
+| **all-adverse** | **74.9%** | **67.0%** | **−7.9** |
+
+> In `all-adverse` we lose, by eight points. And look **why** — T+3 doesn't get worse
+> there, it gets *better*, from 49% to 75%.
+>
+> That world is one where balance shortfalls clear on their own and accounts deplete
+> immediately. Which is a world where blind daily retry genuinely works, and **the problem
+> we built this to solve doesn't really exist.** Our own assumptions file predicted it:
+> *"if balances were independent day to day, the fixed T+3 policy would already be
+> near-optimal and this whole project would have no thesis."*
+>
+> So the honest claim is conditional: **SALVAGE is worth having where balance shortfalls
+> persist.** That's a testable property of a real portfolio, and it's the first thing
+> you'd measure before deploying any of this.
+>
+> One more we won't hide. On the **all-in** measure, which prices customer patience, the
+> agent is **worse** — 1.245p against 2.483p. The two curves cross when a customer contact
+> is worth about **₹3.27**. We priced one at **₹15**, deliberately, so messaging could
+> never be the cheap default. That choice is what puts us on the losing side of that line.
+> The argument worth having is about the price of a contact, not the cost ratio — so we
+> ship the curve.
+
+**On screen:** the eleven-world table, then the break-even chart with the crossover marked.
+**Command:** `node src/robustness.ts` · `node src/dashboard.ts && open out/dashboard.html`
 
 ---
 
-## 3:20 – 4:00 · The guardrails, and what we actually verified
+## 3:15 – 3:50 · The guardrails, and the one thing that isn't simulated
 
-> Every action passes a deterministic policy gate the agent cannot argue past. On this
-> run it blocked **108 actions** — 99 retries against terminal mandates, and 9 charges on
-> failures nobody could classify.
+> Every action passes a deterministic policy gate the agent cannot argue past. It blocked
+> 108 actions on this run — 99 retries against terminal mandates, 9 charges on failures
+> nobody could classify.
 >
 > That last one matters. We mapped Razorpay's **real documented** recurring-payment error
-> reasons. Nine of the eighteen are too ambiguous to map — "declined due to business or
-> technical reasons" could be anything — so they classify as UNKNOWN, and **an unknown
+> reasons. Nine of the eighteen are too ambiguous to map — *"declined due to business or
+> technical reasons"* could be anything — so they classify as UNKNOWN, and **an unknown
 > failure is never automatically retried.**
+>
+> And that's the one claim here that doesn't rest on the simulator. There's an adapter
+> that takes Razorpay's documented webhook envelope, pulls the failure reason off the
+> payment entity, and hands it to the *same* classifier our simulated codes go through.
+> All eighteen documented reasons are tested through it.
+>
+> What we have **not** done is call their API — not even test mode. That needs an account,
+> and the document says exactly what a first run would settle.
 >
 > The RBI parameters are sourced, not invented: pre-transaction notification at least 24
 > hours before the debit, Section 6 of the **E-mandate Framework, 2026**, which replaced
 > the 2019 circular most people still cite.
 >
 > One honest caveat. That framework applies to *cards, PPI and UPI* — it doesn't name
-> NACH. So we apply the rule only to the rails it names. And it says **nothing at all**
-> about retries. Whether a retry needs its own notice is genuinely unresolved in the text,
-> so we implemented both readings behind a flag and default to the permissive one. We're
-> not claiming to have found a compliance gap — we're saying the document doesn't answer
-> the question.
+> NACH, so we apply the rule only to the rails it names. And it says **nothing at all**
+> about retries. We're not claiming to have found a compliance gap — we're saying the
+> document doesn't answer the question, so we implemented both readings behind a flag.
 
-**On screen:** the policy-gate rule table.
-**Sources:** [E-mandate Framework, 2026](https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=13374) · [Razorpay eMandate error codes](https://razorpay.com/docs/payments/recurring-payments/emandate/errors/)
+**On screen:** the policy-gate rule table, then the 18 reasons flowing through the adapter.
+**Sources:** [E-mandate Framework, 2026](https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=13374) · [Razorpay eMandate errors](https://razorpay.com/docs/payments/recurring-payments/emandate/errors/)
 
 ---
 
-## 4:00 – 4:35 · It survives being killed
+## 3:50 – 4:25 · It survives being killed
 
 > This runs on a real durable spine — Postgres, Redis, worker containers.
 >
@@ -145,30 +214,34 @@ heavily than it punishes synthetic data honestly labelled.
 > handler runs. The survivor finishes the batch.
 >
 > **Zero duplicate charges. Zero lost cases. And the event log still reconstructs case
-> state exactly.**
->
-> We check that against the *gateway's* own ledger, in its own table — not ours.
+> state exactly** — checked against the *gateway's* own ledger, in its own table, not ours.
 
 **On screen:** the terminal, live.
 **Command:** `node src/chaos.ts --cases 250`
 
 ---
 
-## 4:35 – 5:00 · The audit trail, and the honest close
+## 4:25 – 5:00 · The audit trail, and the close
 
 > Open any case and walk the chain: what the agent saw, what it proposed, what the gate
-> ruled, what actually executed.
+> ruled, what executed.
 >
 > Here's a revoked mandate. The fixed policy proposes a retry. The gate refuses it by name
 > — `TERMINAL_CLASS_NO_CHARGE` — and the case stops instead of burning three more fees.
 >
-> This is a working prototype with a measured comparison against a control arm. The data
-> is simulated and labelled as such everywhere. No real money moves and no real payment
-> API is called — the only outbound calls are to the model provider, for diagnosis.
-> Every cost assumption is documented, and the ones that flatter us most
-> are the ones we set most conservatively.
+> So — what did we build?
 >
-> The gap is real, the gap is documented, and it's in your core domain.
+> **A measurement rig, and a recovery agent worth measuring.** The agent is worth about
+> twenty points of recovery at half the gateway cost, on a control arm that already
+> declines every impossible charge, holding across fifty cohorts and ten of eleven broken
+> worlds.
+>
+> And the rig is what lets us tell you the rest: that the language model contributes
+> nothing on failures we already understand, and 85% of the recoverable ground on
+> failures we don't. That we lose in the world where our central assumption is false. That
+> we cost more per rupee once you price customer patience above ₹3.27.
+>
+> Most projects can't separate those things. That's the part we'd want you to take.
 
 **On screen:** the audit trail — *proposed: RETRY_NOW → executed: STOP · DENY ·
 TERMINAL_CLASS_NO_CHARGE*.
@@ -176,52 +249,68 @@ TERMINAL_CLASS_NO_CHARGE*.
 
 ---
 
-## Verified numbers (seed `20260101`, 300 cases)
+## Verified numbers
 
-**One live, model-driven run** — Groq `openai/gpt-oss-120b`, 48 live calls, 202 cached, 0
-fallbacks. One of three observed live runs (68.0–72.0%); the deterministic figure is 70.7%
-and is exactly reproducible.
+### Multi-cohort (50 seeds × 300 cases, deterministic, exactly reproducible)
 
-| Metric | Control (T+3) | Agent (live model) | Delta |
+| Metric | Control | SALVAGE | Paired difference (95% CI) | Seeds won |
+|---|---|---|---|---|
+| Recovery rate | 49.1% | 68.9% | **+19.8 ppt [19.1, 20.4]** | 50 / 50 |
+| Gateway cost per ₹ | 0.627p | 0.333p | −0.293p [−0.316, −0.271] | 50 / 50 |
+| Total attempts | 599 | 474 | −125 [−129, −121] | 50 / 50 |
+
+Lift range across seeds: **13.7 to 25.3 ppt.** Published seed `20260101` ranks 29th of 50.
+
+### Single cohort (seed `20260101`, 300 cases, deterministic)
+
+| Metric | Control (T+3) | SALVAGE | Delta |
 |---|---|---|---|
-| Recovery rate | 50.3% | 72.0% | **+21.7 ppt** (≈ +43.1% relative) |
-| Recovered | ₹3,62,549.00 | ₹5,52,884.00 | +₹1,90,335.00 |
-| Gateway cost per ₹ recovered | 0.505p | 0.268p | −46.9% |
-| **All-in cost per ₹ recovered** | **1.245p** | **2.697p** | **+116.7% (agent worse)** |
-| Total attempts | 610 | 494 | −19.0% |
-| Attempts on terminal cases | 99 | 99 | 0 |
-| Customer contacts | 0 | 220 | +220 |
-| Cases escalated to a human | 10 | 13 | +3 |
+| Recovery rate | 50.3% | 70.7% | **+20.3 ppt** |
+| Gateway cost per ₹ recovered | 0.505p | 0.264p | −47.8% |
+| **All-in cost per ₹ (incl. patience)** | **1.245p** | **2.483p** | **agent worse** |
+| Total attempts | 610 | 488 | −20.0% |
+| Customer contacts | 0 | 148 | +148 |
+| Actions blocked by the gate | 108 | 0 | — |
 
-**What the model itself contributes** — run both ways on the same cohort:
+All-in break-even: **₹3.27 per contact.** We assumed ₹15.00.
 
-| Arm | Recovery | Reproducible? |
+### The ablation ladder (baseline world, 10 seeds)
+
+| Arm | Recovery | Attempts | Gateway c/₹ |
+|---|---|---|---|
+| 1. fixed T+3 | 49.4% | 603 | 0.602p |
+| 2. + class-aware (smart retry) | 49.4% | 603 | 0.602p |
+| 3. + inflow timing | 56.6% | 474 | 0.364p |
+| 4. + full action space | 68.8% | 474 | 0.319p |
+
+### Robustness (11 worlds × 10 seeds)
+
+Lift established in **10 of 11**. Weakest positive: `shortfall-transient`, +7.8 ppt.
+Fails in `all-adverse`: **−7.9 ppt [−9.1, −6.7], 0/10 seeds.**
+`notify-useless` is a **no-op** — the deterministic agent never sends a bare notification.
+
+### What the model contributes
+
+| Cohort | Model off | Model on |
 |---|---|---|
-| Control (fixed T+3) | 50.3% | exactly |
-| Agent, model OFF | **70.7%** | **exactly** |
-| Agent, model ON — run 1 | 72.0% | no |
-| Agent, model ON — run 2 | 70.0% | no |
-| Agent, model ON — run 3 | 68.0% | no |
+| Mapped vocabulary (Phase 3) | 70.7% exactly | 72.0 / 70.0 / 68.0 — **inside noise** |
+| Unmapped vocabulary | **0.0%** | **62.7%** — 85.5% of ground lost |
 
-**The model's effect is within its own run-to-run noise.** Say so. Claim the ~+20 ppt for
-the deterministic machinery, not for the LLM.
-
-Under the conservative `per_debit` reading (deterministic): control 43.3%, agent 68.3%.
+Comprehension: 88.3% correct, 0 misreads into different handling, 86.2% of illegible text
+declined, 13.8% over-read. Consequence: 192/192 on the right side, **0 impossible charges
+unlocked**. Live Groq `openai/gpt-oss-120b`: 33 calls, 184 cached, 0 fallbacks.
 
 ---
 
 ## Provenance — read this before recording
 
-The headline table is a **genuine model-driven run**. `src/phase3.ts` computes provenance
-from what was **observed**, prints it, and **exits non-zero** if a run that requested the
-model produced zero successful calls. You cannot accidentally present a fallback run as an
-AI result.
+`src/phase3.ts` and `src/generalization.ts` compute provenance from what was **observed**,
+print it, and **exit non-zero** if a run that requested the model produced zero successful
+calls. You cannot accidentally present a fallback run as an AI result.
 
-Before recording, run `node src/phase3.ts --cases 300` and check the RESULT PROVENANCE
-block says `MODEL-DRIVEN — N live calls`. It takes about 7 minutes: the free tier's binding
-limit is 8,000 tokens/minute and the client paces itself against the provider's own
-rate-limit headers. If it says `FALLBACK ONLY`, the daily quota is out — use the
-deterministic numbers and say so.
+Before recording, check the RESULT PROVENANCE block says `MODEL-DRIVEN — N live calls`.
+A full 300-case live run takes ~7 minutes: the free tier's binding limit is 8,000 tokens
+per minute and the client paces itself against the provider's own rate-limit headers.
 
 Provider chain: **Groq → OpenRouter → Gemini → deterministic fallback.** Only
 `GROQ_API_KEY` is required.
@@ -232,42 +321,49 @@ Provider chain: **Groq → OpenRouter → Gemini → deterministic fallback.** O
 docker compose up -d && node src/db/migrate.ts && docker compose --profile chaos up -d --scale worker=2
 ```
 
-- [ ] `npm test` green (137 tests: 134 pass, 3 skipped live-model evals)
-- [ ] `node src/main.ts --cases 300` — Phase 1 runs with no database
-- [ ] `node src/phase3.ts --cases 300` — check RESULT PROVENANCE says MODEL-DRIVEN (~7 min)
-- [ ] `node src/phase3.ts --cases 300 --deterministic-only` — the floor, no API key needed
-- [ ] `node src/chaos.ts --cases 250` — all four guarantees PASS
-- [ ] `node src/dashboard.ts --cases 300` — check the provenance banner says what you intend
-- [ ] Numbers on screen match the table above; if you re-ran with different flags, update the script
+- [ ] `npm test` green (230 tests: 227 pass, 3 skipped live-model evals)
+- [ ] `npm run seeds` — the intervals, under a second, no key
+- [ ] `npm run robustness` — the 11 worlds, including the one we lose
+- [ ] `npm run phase3:offline` — the exact deterministic floor
+- [ ] `npm run phase3` — check RESULT PROVENANCE says MODEL-DRIVEN (~7 min)
+- [ ] `npm run generalization` — the model's actual contribution
+- [ ] `npm run chaos` — all four guarantees PASS
+- [ ] `npm run dashboard` — check the provenance banner and the break-even chart
+- [ ] Numbers on screen match the tables above
 
 ## Things you must NOT say
 
 - ❌ "production-ready", "production system", or any claim of production performance
 - ❌ "real customers", "real payments", "real money", "actual recovery rate"
-- ❌ "AI-driven results" / "Gemini decided this" **for a deterministic or fallback-only run**
-- ❌ "we found a compliance gap in Razorpay's T+3" — the framework is silent on retries; we did not find a gap
+- ❌ "we called the Razorpay API" — **we have not, not even test mode**
+- ❌ "AI-driven results" for a deterministic or fallback-only run
+- ❌ implying the LLM produced the ~20 ppt lift — it does not; its measured value is
+  confined to unmapped rail codes
+- ❌ "it works in every world" — it loses in `all-adverse`, by 7.9 points
+- ❌ "we beat smart retry" — our *baseline* already is smart retry; say that instead
+- ❌ "we found a compliance gap in Razorpay's T+3" — the framework is silent on retries
 - ❌ "RBI requires a fresh notice per retry" — the document does not say that
 - ❌ "quiet hours are an RBI rule" — that is our own operational policy
 - ❌ "₹3 is the Razorpay fee" — it is a synthetic modelling parameter
 - ❌ "+20% improvement" — it is ~+20 percentage **points** (≈40% relative)
-- ❌ implying the LLM produced the lift — its effect is within run-to-run noise
 - ❌ quoting a single live run as reproducible — three runs gave 72.0%, 70.0%, 68.0%
 - ❌ citing the 2019 circular (RBI/2019-20/47) as current — it was repealed
-- ❌ claiming NPCI NACH codes are mapped — they are not; npci.org.in blocked automated access
+- ❌ claiming NPCI NACH codes are mapped — they are not
 
 ## Things you CAN safely say
 
 - ✅ "All payment data is simulated; no real money moves and no real payment API is called"
-- ✅ "The cohort is seeded and reproducible — same seed, same numbers, on any machine"
-- ✅ "Control and agent face an identical simulated world; only their decisions differ"
-- ✅ "These are prototype simulation results measured against a control arm"
-- ✅ "Every cost assumption is documented with its basis, and the fee is a stated synthetic parameter"
-- ✅ "The AI cannot bypass the deterministic policy gate — the gate applies to both arms"
-- ✅ "We mapped Razorpay's real documented error reasons, and left the ambiguous ones explicitly UNKNOWN"
+- ✅ "+19.8 percentage points, 95% CI [19.1, 20.4], positive on 50 of 50 cohorts"
+- ✅ "The deterministic result is exactly reproducible — same seed, same numbers, any machine"
+- ✅ "Our control arm already refuses every impossible charge; the gate applies to both arms"
+- ✅ "The lift is timing and the action space, not the diagnosis — the ladder shows it"
+- ✅ "It holds in ten of eleven perturbed worlds, and we show you the eleventh"
+- ✅ "The claim is conditional: this is worth having where balance shortfalls persist"
+- ✅ "On all-in cost we are worse above ₹3.27 per contact, and we ship the curve"
+- ✅ "The model's effect on known failures is within noise, and we measured it both ways"
+- ✅ "On rail codes we have never mapped, the model recovers 85% of the ground lost"
+- ✅ "It declines to guess on 86% of responses that establish no cause, and we report the rest"
+- ✅ "We mapped Razorpay's real documented error reasons and left the ambiguous ones UNKNOWN"
 - ✅ "An unknown failure is never automatically retried"
+- ✅ "The adapter parses Razorpay's documented webhook shape; all 18 reasons are tested through it"
 - ✅ "The RBI figures are quoted from the E-mandate Framework, 2026, with section numbers"
-- ✅ "The framework is silent on retries, so we implemented both readings and defaulted to the permissive one"
-- ✅ "On the all-in cost measure the agent is worse, and we report that"
-- ✅ "Essentially all the lift is deterministic; the model's effect is within noise, and we measured both"
-- ✅ "The deterministic run is exactly reproducible; live model runs are not"
-- ✅ "The model runs on Groq's free tier with strict schema-constrained decoding"

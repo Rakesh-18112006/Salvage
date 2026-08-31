@@ -13,10 +13,14 @@ import type {
   Timestamp,
 } from '../domain/types.ts';
 import type { FailureClass } from '../domain/taxonomy.ts';
-import { SIM } from '../assumptions.ts';
 import { daysSinceInflow, istParts } from './clock.ts';
 import { bank, isBankDown } from './banks.ts';
 import { chanceAt, uniform } from './rng.ts';
+import {
+  DEFAULT_WORLD_PARAMS as DEFAULT_PARAMS,
+  paramsOf,
+  type WorldParams,
+} from './worldParams.ts';
 
 /**
  * A rail's decline vocabulary.
@@ -40,6 +44,14 @@ export interface SimContext {
   subscription(id: string): Subscription;
   /** Absent or null => this build's own SIM_ codes. */
   readonly dialect?: RailDialect | null;
+  /**
+   * How the world behaves. Absent => exactly `assumptions.ts`.
+   *
+   * The agent does NOT read this; it reads `assumptions.ts` directly. Perturbing this
+   * bag therefore makes the agent's beliefs wrong about the world it is acting in, which
+   * is what `node src/robustness.ts` measures.
+   */
+  readonly params?: WorldParams | null;
 }
 
 export interface SimAttemptResult {
@@ -72,8 +84,13 @@ function dayKey(ts: Timestamp): string {
  * size of the charge. Reliable customers never get there within a cycle; a large
  * recurring charge brings the date forward.
  */
-export function depletionOffsetDays(customer: Customer, amountPaise: number): number {
-  const base = 5 + 60 * Math.pow(customer.reliability, 1.2);
+export function depletionOffsetDays(
+  customer: Customer,
+  amountPaise: number,
+  params: WorldParams = DEFAULT_PARAMS,
+): number {
+  const base =
+    params.depletionBaseDays + params.depletionReliabilityScale * Math.pow(customer.reliability, 1.2);
   const amountPressure = Math.min(0.35, (amountPaise / 100_000) * 0.06);
   return base * (1 - amountPressure);
 }
@@ -90,8 +107,11 @@ export function inShortfallWindow(
   customer: Customer,
   amountPaise: number,
   ts: Timestamp,
+  params: WorldParams = DEFAULT_PARAMS,
 ): boolean {
-  return daysSinceInflow(ts, customer.inflowDay) >= depletionOffsetDays(customer, amountPaise);
+  return (
+    daysSinceInflow(ts, customer.inflowDay) >= depletionOffsetDays(customer, amountPaise, params)
+  );
 }
 
 /** Modelled probability the debit fails for want of funds on the day of `ts`. */
@@ -99,10 +119,11 @@ export function shortfallProbability(
   customer: Customer,
   amountPaise: number,
   ts: Timestamp,
+  params: WorldParams = DEFAULT_PARAMS,
 ): number {
-  return inShortfallWindow(customer, amountPaise, ts)
-    ? SIM.shortfallDailyFailureRate.value
-    : SIM.fundedDailyFailureRate.value;
+  return inShortfallWindow(customer, amountPaise, ts, params)
+    ? params.shortfallDailyFailureRate
+    : params.fundedDailyFailureRate;
 }
 
 /** Failure descriptions, kept alongside the codes so the audit trail reads naturally. */
@@ -138,6 +159,7 @@ function emit(
   attemptNo: number,
 ): SimAttemptResult {
   const { seed } = ctx;
+  const params = paramsOf(ctx);
 
   const dialect = ctx.dialect ?? null;
   if (dialect !== null) {
@@ -151,7 +173,7 @@ function emit(
   }
 
   const unmapped = chanceAt(
-    SIM.unmappedCodeRate.value,
+    params.unmappedCodeRate,
     'unmapped',
     seed,
     subscriptionId,
@@ -192,6 +214,7 @@ export function attemptCharge(
 ): SimAttemptResult {
   const { subscription, mandate, customer, attemptNo, at } = args;
   const { seed } = ctx;
+  const params = paramsOf(ctx);
   const sid = subscription.id;
 
   // --- terminal causes: no retry on this mandate can ever clear them -------------
@@ -213,7 +236,7 @@ export function attemptCharge(
   }
 
   const technicalRate =
-    SIM.baseTechnicalDeclineRate.value + bank(mandate.bankCode).extraTechnicalDeclineRate;
+    params.baseTechnicalDeclineRate + bank(mandate.bankCode).extraTechnicalDeclineRate;
   if (chanceAt(technicalRate, 'technical', seed, sid, attemptNo, at)) {
     return emit('TECHNICAL_DECLINE', ctx, sid, attemptNo);
   }
@@ -223,7 +246,7 @@ export function attemptCharge(
   // third retries add so little on liquidity failures.
   const shortfall =
     uniform('funds', seed, customer.id, dayKey(at)) <
-    shortfallProbability(customer, subscription.amountPaise, at);
+    shortfallProbability(customer, subscription.amountPaise, at, params);
   if (shortfall) return emit('INSUFFICIENT_FUNDS', ctx, sid, attemptNo);
 
   return SUCCESS;
@@ -245,7 +268,7 @@ export function selfHealsOn(
   upliftMultiplier = 1,
 ): boolean {
   if (customer.accountState !== 'normal') return false;
-  const rate = SIM.dailySelfHealRate.value * customer.reliability * upliftMultiplier;
+  const rate = paramsOf(ctx).dailySelfHealRate * customer.reliability * upliftMultiplier;
   // The uniform draw is keyed WITHOUT the multiplier, so notifying raises the threshold
   // against the same underlying draw rather than re-rolling the dice. Otherwise sending
   // a message would be a free extra chance rather than a genuine uplift.

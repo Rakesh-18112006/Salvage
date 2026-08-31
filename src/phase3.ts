@@ -18,6 +18,8 @@ import { AgentPolicy } from './agent/agentPolicy.ts';
 import { buildModelChain } from './agent/modelChain.ts';
 import { provenanceOf } from './agent/provenance.ts';
 import { renderArmMetrics, renderTable } from './engine/metrics.ts';
+import { COST } from './assumptions.ts';
+import { breakEvenCurve, modelCostAtScale, tokenPriceFromEnv } from './economics.ts';
 import { buildAtRiskPopulation } from './sim/population.ts';
 import { computeLift, runArm } from './engine/runner.ts';
 
@@ -293,51 +295,120 @@ async function main(): Promise<void> {
     );
   }
 
-  // --- sensitivity: the all-in figure is driven by an invented constant ---------
-  // Reporting "all-in cost is higher" as a finding would be misleading when that number
-  // is dominated by a stand-in we chose. So report where it turns over instead.
-  const cShadow = c.totalCostPaise - c.cashCostPaise;
-  const aShadow = a.totalCostPaise - a.cashCostPaise;
+  // --- the all-in row, and the assumption it turns on ---------------------------
+  // Reporting "all-in cost is higher" as a finding would be misleading when the number
+  // is dominated by a stand-in we chose. So report the CURVE and where it crosses.
   console.log();
   console.log(
     'Note on the escalation line: control never escalates a frozen or risk-declined\n' +
       'account to anyone. It looks cheaper on human cost by declining the obligation,\n' +
       'which is why that cost is broken out rather than folded into the headline.',
   );
-  const allIn = (cash: number, shadow: number, k: number, recoveredPaise: number) =>
-    (cash + k * shadow) / (recoveredPaise / 100);
-  // Multiplier k on the patience/friction assumptions at which the two arms are equal.
-  const denom = aShadow / (a.recoveredPaise / 100) - cShadow / (c.recoveredPaise / 100);
-  const breakEven =
-    denom === 0
-      ? null
-      : (c.cashCostPaise / (c.recoveredPaise / 100) - a.cashCostPaise / (a.recoveredPaise / 100)) /
-        denom;
+
+  const curve = breakEvenCurve(c, a, {
+    assumedContactPaise: COST.contactPatiencePaise.value,
+  });
 
   console.log();
-  console.log('SENSITIVITY OF THE ALL-IN FIGURE');
+  console.log('ALL-IN COST vs THE PRICE OF CUSTOMER PATIENCE');
   console.log(
     renderTable([
-      ['Patience/friction assumption', 'Control all-in', 'Agent all-in', 'Agent better?'],
-      ...[0, 0.25, 0.5, 1, 2].map((k) => {
-        const cv = allIn(c.cashCostPaise, cShadow, k, c.recoveredPaise);
-        const av = allIn(a.cashCostPaise, aShadow, k, a.recoveredPaise);
-        return [
-          k === 1 ? '1.0x (as assumed)' : `${k.toFixed(2)}x`,
-          `${cv.toFixed(3)}p`,
-          `${av.toFixed(3)}p`,
-          av < cv ? 'yes' : 'no',
-        ];
-      }),
+      ['Patience/friction priced at', 'Per contact', 'Control', 'Agent', 'Agent better?'],
+      ...curve.points.map((p) => [
+        p.k === 1 ? '1.00x (as assumed)' : `${p.k.toFixed(2)}x`,
+        `${((p.k * COST.contactPatiencePaise.value) / 100).toFixed(2)} INR`,
+        `${p.controlAllInPaise.toFixed(3)}p`,
+        `${p.agentAllInPaise.toFixed(3)}p`,
+        p.agentBetter ? 'yes' : 'no',
+      ]),
     ]),
   );
   console.log(
-    breakEven === null || breakEven <= 0
+    curve.crossoverK === null
       ? 'The two arms do not cross within a meaningful range of the assumption.'
-      : `Break-even: the agent wins on all-in cost when customer patience and friction are\n` +
-        `priced below ${breakEven.toFixed(2)}x our assumed values. Above that, it recovers more\n` +
-        `money at a higher modelled human cost - a real trade-off, not a hidden one.`,
+      : `CROSSOVER at ${curve.crossoverK.toFixed(2)}x, i.e. when one customer contact is\n` +
+        `worth about INR ${((curve.crossoverContactPaise ?? 0) / 100).toFixed(2)}. Below that the agent is cheaper on EVERY\n` +
+        'measure and there is no trade-off to argue about. Above it, it recovers more\n' +
+        'money at a higher modelled human cost - a real trade-off, and the number the\n' +
+        'argument should be about is the price of a contact, not the cost per rupee.',
   );
+
+  // Say plainly which side of the crossover the assumed price sits on, rather than
+  // leaving a reader to compare two numbers in different units.
+  if (curve.crossoverK !== null) {
+    console.log(
+      curve.crossoverK >= 1
+        ? 'At the price we assumed, the agent is on the WINNING side of that crossover.'
+        : 'At the price we assumed (INR 15.00 per contact) the agent is on the LOSING\n' +
+          'side of that crossover, and this table is the honest way to say so: the agent\n' +
+          'wins on all-in cost only where a contact is cheap. We priced a contact at five\n' +
+          'gateway fees precisely so that messaging could never be the cheap default, and\n' +
+          'that choice is what puts us the wrong side of the line. A business that prices\n' +
+          'its own customer patience lower than we did reaches a different answer, which\n' +
+          'is why the price is the argument and not the ratio.',
+    );
+  }
+
+  // --- what this would cost at volume ------------------------------------------
+  // Only meaningful when a model actually ran. Printing "0 calls per 1,000 cases" after
+  // a deterministic run would read as "the model is free" rather than "no model ran".
+  const price = tokenPriceFromEnv();
+  if (client !== null && s.modelCalls > 0) {
+  const scale = modelCostAtScale(
+    {
+      cases: o.cases,
+      decisions: s.decisions,
+      triagedDeterministically: s.triagedDeterministically,
+      cacheHits: s.cacheHits,
+      modelCalls: s.modelCalls,
+      promptTokens: client?.usage.promptTokens ?? 0,
+      outputTokens: client?.usage.outputTokens ?? 0,
+    },
+    a.recoveredPaise,
+    price,
+  );
+
+  console.log();
+  console.log('MODEL COST AT VOLUME (projected from THIS run\'s observed usage)');
+  console.log(
+    renderTable([
+      ['Measure', 'Value'],
+      ['Decisions per case', scale.decisionsPerCase.toFixed(2)],
+      ['Decisions settled without any model', `${scale.settledWithoutModelPct.toFixed(1)}%`],
+      ['  of which served from the decision cache', `${scale.cacheHitPct.toFixed(1)}%`],
+      ['Model calls per 1,000 cases', scale.modelCallsPer1000Cases.toFixed(1)],
+      ['Prompt tokens per 1,000 cases', Math.round(scale.promptTokensPer1000Cases).toLocaleString('en-IN')],
+      ['Output tokens per 1,000 cases', Math.round(scale.outputTokensPer1000Cases).toLocaleString('en-IN')],
+      [
+        'Model spend per 1,000,000 cases',
+        scale.costPerMillionCasesRupees === null
+          ? 'no price supplied - see below'
+          : `INR ${scale.costPerMillionCasesRupees.toFixed(0)}`,
+      ],
+      [
+        'As a share of the money recovered',
+        scale.costAsShareOfRecoveredPct === null
+          ? 'n/a'
+          : `${scale.costAsShareOfRecoveredPct.toFixed(4)}%`,
+      ],
+    ]),
+  );
+  console.log(
+    price === null
+      ? 'No token price is supplied, and none is hardcoded on purpose: a per-token price\n' +
+        'baked into this repo would be quoted back as a fact about a vendor long after it\n' +
+        'stopped being true. Calls and tokens above are MEASUREMENTS. To price them, set\n' +
+        'SALVAGE_MODEL_INPUT_RUPEES_PER_MTOK, SALVAGE_MODEL_OUTPUT_RUPEES_PER_MTOK and\n' +
+        'SALVAGE_MODEL_PRICE_SOURCE, and the money appears with its source recorded.'
+      : `Price basis: ${price.source}`,
+  );
+  console.log(
+    'The seven-minute wall clock on this run is a FREE-TIER RATE LIMIT (8,000 tokens per\n' +
+      'minute), not an architectural bound - the call count above is what scales. Note\n' +
+      'also that the cache hit rate is an upper bound: a larger, more varied portfolio\n' +
+      'presents more distinct decision contexts and would cache less well.',
+  );
+  }
 
   // PROVENANCE. Derived from what was observed, never from the flags. This is the one
   // claim the project must not get wrong, so it is computed in one place and printed

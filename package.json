@@ -25,6 +25,7 @@
     "generalization": "node src/generalization.ts --cases 150",
     "generalization:offline": "node src/generalization.ts --cases 150 --deterministic-only",
     "seeds": "node src/seeds.ts --seeds 50 --cases 300",
+    "robustness": "node src/robustness.ts --seeds 10 --cases 300",
     "dashboard": "node src/dashboard.ts --cases 300",
     "chaos": "node src/chaos.ts --cases 250",
     "chaos:up": "docker compose --profile chaos up -d --scale worker=2",

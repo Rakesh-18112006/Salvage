@@ -32,6 +32,7 @@ import {
   type SimAttemptResult,
   type SimContext,
 } from './paymentSimulator.ts';
+import { DEFAULT_WORLD_PARAMS, type WorldParams } from './worldParams.ts';
 
 /** The IST month the simulated billing cycle runs in. */
 export const SIM_CYCLE_YEAR = 2026;
@@ -45,13 +46,20 @@ export class World implements SimContext {
    * dialect the taxonomy has never seen; nothing else does.
    */
   readonly dialect: RailDialect | null;
+  /** How this world behaves. The AGENT never reads it - see src/sim/worldParams.ts. */
+  readonly params: WorldParams;
   private readonly customers = new Map<string, Customer>();
   private readonly mandates = new Map<string, Mandate>();
   private readonly subscriptions = new Map<string, Subscription>();
 
-  constructor(seed: string, dialect: RailDialect | null = null) {
+  constructor(
+    seed: string,
+    dialect: RailDialect | null = null,
+    params: WorldParams = DEFAULT_WORLD_PARAMS,
+  ) {
     this.seed = seed;
     this.dialect = dialect;
+    this.params = params;
   }
 
   add(customer: Customer, mandate: Mandate, subscription: Subscription): void {
@@ -259,6 +267,13 @@ export interface PopulationOptions {
    * same seed with and without a dialect is the same cohort, described differently.
    */
   readonly dialect?: RailDialect | null;
+  /**
+   * How the world behaves. Omit for exactly `assumptions.ts`.
+   *
+   * Perturbing this changes the WORLD and not the agent, whose beliefs still come from
+   * `assumptions.ts`. That asymmetry is the entire point - see src/robustness.ts.
+   */
+  readonly params?: WorldParams | null;
 }
 
 export function buildAtRiskPopulation(
@@ -266,7 +281,7 @@ export function buildAtRiskPopulation(
   targetCases: number,
   opts: PopulationOptions = {},
 ): Population {
-  const world = new World(seed, opts.dialect ?? null);
+  const world = new World(seed, opts.dialect ?? null, opts.params ?? DEFAULT_WORLD_PARAMS);
   const cases: AtRiskCase[] = [];
 
   let generated = 0;

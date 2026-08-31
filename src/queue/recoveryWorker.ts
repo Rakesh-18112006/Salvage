@@ -549,7 +549,7 @@ async function applyBundle(args: ApplyBundleArgs): Promise<void> {
         const customer = world.customer(world.subscription(job.data.subscriptionId).customerId);
         const horizonEndsAt = args.openedAt + SIM.caseHorizonDays.value * DAY_MS;
         const response = respondToAsk(
-          world.seed, action.kind, customer, job.data.subscriptionId,
+          world, action.kind, customer, job.data.subscriptionId,
           args.amountPaise, firesAt, asks + 1, horizonEndsAt,
         );
         if (response.completed && response.completedAt !== null) {

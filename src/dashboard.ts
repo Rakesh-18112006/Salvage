@@ -24,7 +24,8 @@ import { buildModelChain } from './agent/modelChain.ts';
 import { provenanceOf, type Provenance } from './agent/provenance.ts';
 import { ControlT3Policy } from './policy/controlT3.ts';
 import { ALL_SOURCED_VALUES } from './policy/compliance.ts';
-import { ALL_ASSUMPTIONS } from './assumptions.ts';
+import { ALL_ASSUMPTIONS, COST } from './assumptions.ts';
+import { breakEvenCurve, type BreakEvenCurve } from './economics.ts';
 import { computeLift, runArm, type ArmResult } from './engine/runner.ts';
 import type { ArmMetrics } from './engine/metrics.ts';
 import { buildAtRiskPopulation } from './sim/population.ts';
@@ -66,6 +67,8 @@ interface DashboardData {
   agent: ArmMetrics;
   lift: ReturnType<typeof computeLift>;
   cases: CaseRecord[];
+  /** The all-in cost curve and where the two arms cross. See src/economics.ts. */
+  breakEven: BreakEvenCurve;
   assumptions: AssumptionRow[];
   sourced: SourcedRow[];
 }
@@ -170,6 +173,9 @@ async function main(): Promise<void> {
     agent: agentArm.metrics,
     lift,
     cases,
+    breakEven: breakEvenCurve(controlArm.metrics, agentArm.metrics, {
+      assumedContactPaise: COST.contactPatiencePaise.value,
+    }),
     assumptions: ALL_ASSUMPTIONS.map((a) => ({
       id: a.id,
       value: String(a.value),
@@ -276,6 +282,78 @@ function metricRows(c: ArmMetrics, a: ArmMetrics, lift: ReturnType<typeof comput
     .join('');
 }
 
+/**
+ * The all-in cost curve, drawn.
+ *
+ * A table of eleven rows makes a reader do the comparison themselves; the point of this
+ * row - that the agent is worse ONLY above a particular price for a customer contact -
+ * is a shape, so it is drawn as one. Both series are straight lines in the multiplier,
+ * so this is an honest rendering rather than a smoothed one.
+ *
+ * Inline SVG with no script and no external asset: the dashboard has to survive being
+ * opened from a file:// URL on a laptop with no network, which is how it gets demoed.
+ */
+function breakEvenChart(be: BreakEvenCurve, assumedContactPaise: number): string {
+  const pts = be.points.filter(
+    (p) => Number.isFinite(p.controlAllInPaise) && Number.isFinite(p.agentAllInPaise),
+  );
+  if (pts.length < 2) return '<p class="sub">Not enough data to draw the curve.</p>';
+
+  const W = 620, H = 300, PAD_L = 56, PAD_R = 16, PAD_T = 16, PAD_B = 44;
+  const kMin = Math.min(...pts.map((p) => p.k));
+  const kMax = Math.max(...pts.map((p) => p.k));
+  const yMax = Math.max(...pts.flatMap((p) => [p.controlAllInPaise, p.agentAllInPaise])) * 1.08;
+
+  const x = (k: number) => PAD_L + ((k - kMin) / (kMax - kMin)) * (W - PAD_L - PAD_R);
+  const y = (v: number) => H - PAD_B - (v / yMax) * (H - PAD_T - PAD_B);
+
+  const path = (pick: (p: (typeof pts)[number]) => number) =>
+    pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.k).toFixed(1)},${y(pick(p)).toFixed(1)}`).join(' ');
+
+  const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const v = yMax * f;
+    return `<line x1="${PAD_L}" y1="${y(v).toFixed(1)}" x2="${W - PAD_R}" y2="${y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>` +
+      `<text x="${PAD_L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--muted)">${v.toFixed(1)}p</text>`;
+  }).join('');
+
+  const xTicks = pts
+    .filter((p) => [0, 0.5, 1, 2, 3, 4].includes(p.k))
+    .map((p) =>
+      `<text x="${x(p.k).toFixed(1)}" y="${H - PAD_B + 16}" text-anchor="middle" font-size="11" fill="var(--muted)">` +
+      `\u20b9${((p.k * assumedContactPaise) / 100).toFixed(0)}</text>`,
+    ).join('');
+
+  // The crossover, and the price we actually assumed, marked on the axis rather than
+  // described underneath it.
+  const crossover =
+    be.crossoverK === null || be.crossoverK < kMin || be.crossoverK > kMax
+      ? ''
+      : `<line x1="${x(be.crossoverK).toFixed(1)}" y1="${PAD_T}" x2="${x(be.crossoverK).toFixed(1)}" y2="${H - PAD_B}" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="4 3"/>` +
+        `<text x="${(x(be.crossoverK) + 6).toFixed(1)}" y="${PAD_T + 12}" font-size="11" fill="var(--warn)">crossover \u20b9${((be.crossoverContactPaise ?? 0) / 100).toFixed(2)}</text>`;
+
+  const assumed = kMax >= 1
+    ? `<line x1="${x(1).toFixed(1)}" y1="${PAD_T}" x2="${x(1).toFixed(1)}" y2="${H - PAD_B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 4"/>` +
+      `<text x="${(x(1) + 6).toFixed(1)}" y="${H - PAD_B - 6}" font-size="11" fill="var(--muted)">we assumed \u20b9${(assumedContactPaise / 100).toFixed(0)}</text>`
+    : '';
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img"
+  aria-label="All-in cost per rupee recovered for both arms, against the assumed price of one customer contact. The two lines cross at ${((be.crossoverContactPaise ?? 0) / 100).toFixed(2)} rupees per contact.">
+  ${gridY}
+  <line x1="${PAD_L}" y1="${H - PAD_B}" x2="${W - PAD_R}" y2="${H - PAD_B}" stroke="var(--fg)" stroke-width="1"/>
+  <line x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${H - PAD_B}" stroke="var(--fg)" stroke-width="1"/>
+  ${assumed}${crossover}
+  <path d="${path((p) => p.controlAllInPaise)}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  <path d="${path((p) => p.agentAllInPaise)}" fill="none" stroke="var(--term)" stroke-width="2"/>
+  ${xTicks}
+  <text x="${(W / 2).toFixed(0)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--muted)">modelled price of one customer contact</text>
+  <text x="14" y="${(H / 2).toFixed(0)}" font-size="11" fill="var(--muted)" transform="rotate(-90 14 ${(H / 2).toFixed(0)})" text-anchor="middle">all-in paise per \u20b9 recovered</text>
+  <rect x="${W - 168}" y="${PAD_T}" width="10" height="10" fill="var(--accent)"/>
+  <text x="${W - 152}" y="${PAD_T + 9}" font-size="11" fill="var(--fg)">control (T+3)</text>
+  <rect x="${W - 168}" y="${PAD_T + 16}" width="10" height="10" fill="var(--term)"/>
+  <text x="${W - 152}" y="${PAD_T + 25}" font-size="11" fill="var(--fg)">SALVAGE</text>
+</svg>`;
+}
+
 function renderHtml(d: DashboardData): string {
   const c = d.control;
   const a = d.agent;
@@ -365,6 +443,26 @@ control arm — not a measurement of any production system.</div>
 <div class="card"><table>
 <thead><tr><th>Metric</th><th>Control (T+3)</th><th>Agent</th><th>Delta</th></tr></thead>
 <tbody>${metricRows(c, a, d.lift)}</tbody></table></div>
+
+<h2>The all-in cost row, and the assumption it turns on</h2>
+<p class="sub">On the <strong>all-in</strong> measure — the one that prices customer
+patience and friction alongside cash — the agent is <strong>worse</strong> than the
+control arm. The control arm never messages anybody, so it pays no patience cost at all;
+the agent recovers more money partly <em>by</em> messaging people. Whether that trade is
+worth making depends entirely on what a customer contact is worth, and that price is one
+we invented (<code>cost.contact_patience</code>, &#8377;15.00, &ldquo;there is no invoice
+for customer annoyance&rdquo;). So the honest object is not a verdict but a curve.</p>
+<div class="card">${breakEvenChart(d.breakEven, COST.contactPatiencePaise.value)}
+<p class="sub">${
+  d.breakEven.crossoverK === null
+    ? 'The two arms do not cross within a meaningful range of the assumption.'
+    : `The arms cross at <strong>&#8377;${((d.breakEven.crossoverContactPaise ?? 0) / 100).toFixed(2)} per contact</strong>. ` +
+      'Below that the agent is cheaper on <em>every</em> measure and there is no trade-off to ' +
+      'argue about. Above it, it recovers more money at a higher modelled human cost. We ' +
+      'priced a contact at five gateway fees precisely so that messaging could never be the ' +
+      'cheap default, and that choice is what puts us on the losing side of this line. The ' +
+      'argument worth having is about the price of a contact, not about the cost ratio.'
+}</p></div>
 
 <h2>Policy gate</h2>
 <p class="sub">Deterministic rules neither arm can argue past. The gate applies to

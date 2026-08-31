@@ -125,7 +125,16 @@ export function believedSelfHeal(
   history: PaymentHistory,
   hoursAhead: number,
 ): number {
-  const days = Math.max(0, Math.min(hoursAhead, view.horizonEndsAt - view.now) / HOUR_MS / 24);
+  // Both operands of the min must be HOURS. An earlier version compared `hoursAhead`
+  // against `horizonEndsAt - now` in MILLISECONDS and then divided the winner by
+  // HOUR_MS: the millisecond figure was always the larger, so the min always returned
+  // hoursAhead, which was then treated as milliseconds. The function returned about
+  // 3e-8 for every case in the cohort - EV(WAIT) was structurally zero everywhere it
+  // appeared in the audit trail. No decision depended on it (strategies are chosen by
+  // the model or by fallbackDecision, never by comparing EVs), so no published recovery
+  // figure moves; what was wrong was the number shown to anyone reading a case.
+  const hoursLeftInHorizon = (view.horizonEndsAt - view.now) / HOUR_MS;
+  const days = Math.max(0, Math.min(hoursAhead, hoursLeftInHorizon) / 24);
   let daily = SIM.dailySelfHealRate.value;
   if (history.reliabilityBand === 'strong') daily *= 1.4;
   if (history.reliabilityBand === 'weak') daily *= 0.6;

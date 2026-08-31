@@ -62,8 +62,12 @@ src/
     recoveryWorker.ts   one job = one attempt; holds no state between jobs
   webhook/
     verify.ts           HMAC over the RAW body, timing-safe compare
+    razorpayAdapter.ts  Razorpay's DOCUMENTED payload shape -> our taxonomy. The one
+                        seam that is not simulated. Sourced vs inferred fields are
+                        separated, and the inference is reported, never depended on.
     server.ts           node:http ingress; verify, dedupe, 200, process later
   eval/                 ############ EVIDENCE ABOUT THE MODEL ############
+    misspecification.ts eleven worlds that each falsify one belief we lean on
     railDialect.ts      a SYNTHETIC rail vocabulary the taxonomy has never mapped,
                         with per-response labels for what the text does and does
                         not establish. Our invention; no real code appears in it.
@@ -72,6 +76,8 @@ src/
   phase3.ts             Phase 3 entrypoint: control vs agent
   seeds.ts              50-cohort intervals: is the lift real, or one lucky draw?
   generalization.ts     what the model is worth where the lookup table has no row
+  robustness.ts         the ablation ladder, run in worlds our beliefs are wrong about
+  economics.ts          all-in break-even curve; model cost projected to volume
 migrations/
   001_init.sql          the schema IS the specification of the guarantees
   002_rail_ledger.sql   the simulated gateway's own memory
@@ -88,4 +94,7 @@ test/
   policyGate.test.ts    the adversarial cases; every rule asserted by name
   generalization.test.ts  what a model's reading of an unmapped code may NOT do
   stats.test.ts         the intervals behind every headline in the README
+  robustness.test.ts    the ablation arms, and the pinned claim that our baseline
+                        already is smart retry
+  razorpayAdapter.test.ts  all 18 documented reasons, through a real payload shape
 ```

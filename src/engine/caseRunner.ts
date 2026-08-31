@@ -271,7 +271,7 @@ async function runCaseAsync(
         sendAsk: (kind) => {
           asksSent += 1;
           const response = respondToAsk(
-            world.seed, kind, customer, subscription.id, subscription.amountPaise,
+            world, kind, customer, subscription.id, subscription.amountPaise,
             firesAt, asksSent, horizonEndsAt,
           );
           pendingAsk = { completedAt: response.completedAt };

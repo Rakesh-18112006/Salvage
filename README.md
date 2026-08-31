@@ -133,6 +133,69 @@ node src/generalization.ts --cases 150                      # live
 node src/generalization.ts --cases 150 --deterministic-only # the floor, no API key
 ```
 
+### 4. Where the lift comes from — and no, it isn't just smart retry
+
+Four arms, each adding exactly one capability to the one before it:
+
+| Arm | Recovery | Gained | Attempts | Gateway c/₹ |
+|---|---|---|---|---|
+| 1. fixed T+3 | 49.4% | — | 603 | 0.602p |
+| 2. **+ knows why it failed** (smart retry) | **49.4%** | **+0.0** | **603** | **0.602p** |
+| 3. + knows when the customer is paid | 56.6% | +7.2 | 474 | 0.364p |
+| 4. + the other six actions (SALVAGE) | 68.8% | +12.2 | 474 | 0.319p |
+
+Arm 2 gains **nothing** — and that is the useful result. It re-implements in policy what
+the **policy gate already enforces for the control arm**: run the control and
+`TERMINAL_CLASS_NO_CHARGE` fires 99 times on 300 cases. Terminal cases receive exactly one
+attempt in both arms — the opening charge that created the case.
+
+So we do not beat smart retry. **Our baseline already is smart retry**, because the gate
+applies to every arm and was never switched off to flatter us, and the ~20 points are
+measured against that. The lift is **timing and the action space**, not the diagnosis.
+
+### 5. What we are wrong about
+
+We wrote the simulator *and* the policy. If the agent's beliefs and the world's behaviour
+come from the same constants, the result is a tautology — and that was literally true of
+one function (`believedSelfHeal` read the simulator's own constant).
+
+So they are split: the simulator reads [`src/sim/worldParams.ts`](src/sim/worldParams.ts),
+the agent still reads [`src/assumptions.ts`](src/assumptions.ts) and has no access to the
+world. Then the world is broken eleven ways without telling the agent.
+
+**The lift survives in 10 of 11.** Here is the one it does not:
+
+| World | T+3 | SALVAGE | Lift (95% CI) |
+|---|---|---|---|
+| baseline | 49.4% | 68.8% | +19.4 [18.0, 20.7] |
+| shortfall-transient | 56.3% | 64.1% | +7.8 [7.0, 8.6] |
+| **all-adverse** | **74.9%** | **67.0%** | **−7.9 [−9.1, −6.7]** |
+
+Note *why* we lose: T+3 does not get worse in `all-adverse`, it gets **better** — 49% to
+75%. That world has transient shortfalls and immediate depletion, which is a world where
+blind daily retry works and **the problem this project exists to solve does not exist**.
+Our own assumptions file predicted it.
+
+**So the claim is conditional: SALVAGE is worth having where balance shortfalls persist.**
+That is a testable property of a real portfolio, and the first thing to measure before
+deploying any of this.
+
+```bash
+node src/robustness.ts --seeds 10 --cases 300
+```
+
+### 6. The cost row we lose on
+
+On the **all-in** measure, which prices customer patience and friction alongside cash, the
+agent is **worse**: 1.245p against 2.483p per ₹ recovered. The control arm never messages
+anybody, so it pays no patience cost at all.
+
+The two curves cross when a customer contact is worth **₹3.27**. We priced one at **₹15**
+— deliberately, five gateway fees, so that messaging could never be the cheap default —
+and that choice is what puts us on the losing side of the line. The argument worth having
+is about the price of a contact, not the cost ratio, so the dashboard ships the curve with
+the crossover marked.
+
 ---
 
 ## Run it
@@ -148,6 +211,7 @@ node src/main.ts --cases 300 --seed 20260101
 |---|---|---|
 | `npm run baseline` | Phase 1 simulator + T+3 control arm | nothing |
 | `npm run seeds` | 50-cohort confidence intervals | nothing |
+| `npm run robustness` | Ablation ladder across 11 perturbed worlds | nothing |
 | `npm run generalization:offline` | The unmapped-dialect floor | nothing |
 | `npm run phase3:offline` | Full agent, model off, exactly reproducible | nothing |
 | `npm run phase3` | Full agent, live model (~7 min) | `GROQ_API_KEY` |
@@ -184,6 +248,7 @@ The detail that used to live in this file now lives beside the code it describes
 | [PHASE3-AGENT.md](docs/PHASE3-AGENT.md) | The agent, the cost model, and the honest null result on the LLM |
 | [PHASE4-POLICY-GATE.md](docs/PHASE4-POLICY-GATE.md) | The deterministic rules the agent cannot argue past |
 | [PHASE5-EVIDENCE.md](docs/PHASE5-EVIDENCE.md) | Chaos demo, dashboard, audit trail |
+| [RAZORPAY-INTEGRATION.md](docs/RAZORPAY-INTEGRATION.md) | The one claim that is not simulated — and what a first test-mode run would settle |
 | [DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) | Choices worth defending, and why |
 | [ASSUMPTIONS.md](docs/ASSUMPTIONS.md) | Every modelled constant, its basis, and the synthetic gateway fee |
 | [REGULATORY.md](docs/REGULATORY.md) | What is sourced with a section number, and what is our own operational policy |
@@ -205,6 +270,13 @@ The detail that used to live in this file now lives beside the code it describes
   guess on 86.2% of the responses that establish no cause.
 - The lift is **deterministic and exactly reproducible**. Same seed, same numbers, any
   machine.
+- The lift is **timing and the action space, not the diagnosis** — and it is measured
+  against a control arm that already refuses every impossible charge, because the policy
+  gate applies to both arms.
+- It **survives 10 of 11 perturbed worlds** in which the agent's beliefs are stale and
+  wrong, which is the condition every real deployment is permanently in.
+- The Razorpay adapter parses their **documented webhook shape**, and all 18 documented
+  recurring-payment reasons are tested through it into the taxonomy.
 - Razorpay's real documented recurring-payment error reasons are mapped, and the nine
   whose descriptions are genuinely ambiguous are left explicitly `UNKNOWN` — never
   auto-retried.
@@ -231,6 +303,13 @@ The detail that used to live in this file now lives beside the code it describes
 - That the agent wins on every measure. On the **all-in** cost view, which prices customer
   patience and friction, it is **worse**, and Phase 3 prints the break-even point rather
   than hiding the row.
+- That the lift holds unconditionally. In `all-adverse` — transient shortfalls plus
+  immediate depletion — T+3 improves to 74.9% and **we lose by 7.9 points**. The honest
+  claim is conditional on balance shortfalls persisting.
+- That any Razorpay API has been called. **None has**, not even test mode. The adapter
+  parses their documented payload shape; running it against a real account is the
+  merchant's to do, and [RAZORPAY-INTEGRATION.md](docs/RAZORPAY-INTEGRATION.md) says
+  exactly what that would settle.
 - That NPCI NACH return codes are mapped. They are not — npci.org.in refused automated
   access — so any NACH code classifies as `UNKNOWN`, which is the safe direction to be
   wrong in.

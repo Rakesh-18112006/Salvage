@@ -16,9 +16,9 @@
  * arm face the same customers behaving the same way.
  */
 import type { Customer, Timestamp } from '../domain/types.ts';
-import { SIM } from '../assumptions.ts';
 import { HOUR_MS } from './clock.ts';
 import { uniform } from './rng.ts';
+import { DEFAULT_WORLD_PARAMS, type WorldParams } from './worldParams.ts';
 
 export type CustomerAskKind = 'REMANDATE' | 'PAYMENT_LINK';
 
@@ -41,11 +41,10 @@ export function completionProbability(
   kind: CustomerAskKind,
   customer: Customer,
   amountPaise: number,
+  params: WorldParams = DEFAULT_WORLD_PARAMS,
 ): number {
   const base =
-    kind === 'REMANDATE'
-      ? SIM.remandateCompletionBase.value
-      : SIM.paymentLinkCompletionBase.value;
+    kind === 'REMANDATE' ? params.remandateCompletionBase : params.paymentLinkCompletionBase;
 
   const reliabilityLift = 0.26 * customer.reliability;
   const tenureLift = Math.min(0.12, Math.log1p(customer.tenureMonths) / 18);
@@ -63,7 +62,7 @@ export function completionProbability(
  * from the same underlying disposition.
  */
 export function respondToAsk(
-  seed: string,
+  ctx: { readonly seed: string; readonly params?: WorldParams | null },
   kind: CustomerAskKind,
   customer: Customer,
   subscriptionId: string,
@@ -72,12 +71,15 @@ export function respondToAsk(
   sequence: number,
   deadline: Timestamp,
 ): CustomerResponse {
+  const { seed } = ctx;
+  const params = ctx.params ?? DEFAULT_WORLD_PARAMS;
+
   if (customer.accountState !== 'normal') {
     // A closed, frozen, or risk-flagged account cannot complete an authorisation.
     return { completed: false, completedAt: null };
   }
 
-  const p = completionProbability(kind, customer, amountPaise);
+  const p = completionProbability(kind, customer, amountPaise, params);
 
   // The disposition draw is keyed WITHOUT the sequence number: a customer who was never
   // going to act does not become willing because we asked again. Only the timing is
@@ -88,7 +90,7 @@ export function respondToAsk(
 
   // Delay: exponential-ish around the median, re-drawn per ask.
   const u = uniform('ask_delay', seed, kind, subscriptionId, sequence);
-  const delayHours = -Math.log(1 - Math.min(0.999, u)) * SIM.customerActionMedianHours.value * 1.4427;
+  const delayHours = -Math.log(1 - Math.min(0.999, u)) * params.customerActionMedianHours * 1.4427;
   const completedAt = sentAt + Math.round(delayHours) * HOUR_MS;
 
   if (completedAt > deadline) return { completed: false, completedAt: null };
@@ -100,11 +102,14 @@ export function respondToAsk(
  * told the payment failed. This is the entire benefit of a bare NOTIFY, and it is what
  * the agent has to weigh against the patience cost of sending one.
  */
-export function selfHealMultiplierAfterNotify(contactsSent: number): number {
+export function selfHealMultiplierAfterNotify(
+  contactsSent: number,
+  params: WorldParams = DEFAULT_WORLD_PARAMS,
+): number {
   if (contactsSent <= 0) return 1;
   // Diminishing returns: the second message is worth much less than the first. Without
   // this, spamming would be a winning strategy and the patience cost would be the only
   // thing holding it back.
-  const uplift = SIM.notifyUpliftOnSelfHeal.value - 1;
+  const uplift = params.notifyUpliftOnSelfHeal - 1;
   return 1 + uplift / (1 + 0.9 * (contactsSent - 1));
 }
