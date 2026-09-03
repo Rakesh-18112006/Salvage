@@ -67,7 +67,7 @@ Run the same cohort with the model on and off:
 |---|---|---|
 | Control (fixed T+3) | 50.3% | exactly |
 | SALVAGE, model **OFF** | **70.7%** | **exactly** |
-| SALVAGE, model ON — run 1 / 2 / 3 | 72.0% / 70.0% / 68.0% | no |
+| SALVAGE, model ON — four runs | 72.0% / 71.7% / 70.0% / 68.0% | no |
 
 **The model's effect is inside its own run-to-run variance.** Essentially all of the lift
 belongs to the deterministic machinery — the taxonomy, the cost model, the policy gate.
@@ -90,16 +90,16 @@ Under a synthetic unmapped dialect ([`src/eval/railDialect.ts`](src/eval/railDia
 on the same cohort:
 
 Seed `20260101`, 150 cases. Live model-driven run on Groq `openai/gpt-oss-120b`,
-33 live calls, 184 cached, 0 fallbacks.
+33 live calls, 179 cached, 3 fallbacks.
 
 | Arm | Recovery | To a human | Taxonomy coverage |
 |---|---|---|---|
 | Mapped vocabulary, SALVAGE (the ceiling) | 73.3% | 1 | 100% |
 | **Unmapped**, control T+3 | 0.0% | 0 | 0% |
 | **Unmapped**, SALVAGE with the model OFF | 0.0% | 150 | 0% |
-| **Unmapped**, SALVAGE **reading the codes** | **62.7%** | 25 | 0% |
+| **Unmapped**, SALVAGE **reading the codes** | **61.3%** | 28 | 0% |
 
-**+62.7 ppt, which is 85.5% of the ground the unmapped vocabulary cost.** The
+**+61.3 ppt, which is 83.6% of the ground the unmapped vocabulary cost.** The
 deterministic system does not fail here because it is badly written — it **structurally
 cannot** read unfamiliar prose. A language model can. That is the one job in this system
 where it is the right tool.
@@ -109,17 +109,17 @@ know" authorises charges against mandates that can never carry them:
 
 | Scored against what the text supports | Result |
 |---|---|
-| Text that states a cause — read correctly | **88.3%** (166 / 188) |
-| — misread, but the same prescribed handling | 11.7% (22) |
+| Text that states a cause — read correctly | **86.6%** (161 / 186) |
+| — misread, but the same prescribed handling | 11.8% (22) |
 | — misread into *different* handling | **0** |
 | Text that states nothing — correctly declined | **86.2%** (25 / 29) |
 | — **over-confident, adopted anyway** | **13.8% (4)** |
 
 | Scored against the simulator's hidden truth | Result |
 |---|---|
-| Adopted readings on the right side of "can a charge ever work?" | **192 / 192** |
+| Adopted readings on the right side of "can a charge ever work?" | **187 / 187** |
 | Readings that unlocked a charge that can never succeed | **0** |
-| Cases needing a human | 150 → **25** |
+| Cases needing a human | 150 → **28** |
 
 The four over-confident readings are all the same string — `"amount not acceptable"` read
 as `AMOUNT_EXCEEDS_MANDATE`. That is exactly the conflation the taxonomy warns about in
@@ -266,7 +266,7 @@ The detail that used to live in this file now lives beside the code it describes
   a confidence interval and 50/50 cohorts agreeing.
 - The language model earns its place in **one specific job**: reading rail responses the
   taxonomy has never mapped, where a lookup table structurally cannot help. On that
-  cohort it recovers 85.5% of the ground the unknown vocabulary cost, and it declines to
+  cohort it recovers 83.6% of the ground the unknown vocabulary cost, and it declines to
   guess on 86.2% of the responses that establish no cause.
 - The lift is **deterministic and exactly reproducible**. Same seed, same numbers, any
   machine.

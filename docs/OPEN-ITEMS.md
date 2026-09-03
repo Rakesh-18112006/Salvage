@@ -40,8 +40,9 @@ saying the document does not answer the question. Confirm the figures against th
 PDF before submission. See [REGULATORY.md](REGULATORY.md).
 
 **5. The generalization result has no confidence interval.**
-[Result 3 in the README](../README.md) — 62.7% recovery under an unmapped dialect — comes
-from **one run on one seed**. That is precisely the criticism the 50-cohort harness was
+[Result 3 in the README](../README.md) — 61.3% recovery under an unmapped dialect — comes
+from **one run on one seed**, and it demonstrably moves: two runs of the identical command
+on the identical seed gave 62.7% and 61.3%, with comprehension at 88.3% and 86.6%. That is precisely the criticism the 50-cohort harness was
 built to answer for the deterministic lift, and it has not been answered for this number.
 It is not cheap to fix: under an unmapped dialect nothing is settled by triage, so every
 decision reaches the model and a single 150-case run takes ~15 minutes on the free tier.
@@ -96,7 +97,8 @@ so it does not flatter either one in particular. See
   the project migrated off Gemini on 2026-08-31. The chain is now
   **Groq → OpenRouter → Gemini → deterministic fallback**, only `GROQ_API_KEY` is required,
   and the client paces itself against the provider's own rate-limit headers. The last full
-  live run produced **0 fallbacks**.
+  Phase 3 live run produced **0 fallbacks**; the generalization run, which sends every
+  decision to the model, produced **3 of 215**.
 - ~~The headline rests on a single seed.~~ **Done** — [`src/seeds.ts`](../src/seeds.ts)
   reports +19.8 ppt [19.1, 20.4] across 50 cohorts, positive on 50/50. The generalization
   number is still single-run: item 5 above.

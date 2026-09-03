@@ -84,7 +84,7 @@ seconds and stays in the corner throughout.
 > Now the uncomfortable part.
 >
 > On failures our taxonomy already maps, we ran the agent with the model on and off. Off:
-> **70.7%, exactly reproducible.** On: 72, 70, 68. **The model's effect is inside its own
+> **70.7%, exactly reproducible.** On, four runs: 72, 71.7, 70, 68. **That is inside its own
 > noise.** We're not claiming it.
 >
 > But that tests it on the lookup table's home ground. The real question is where the
@@ -95,12 +95,12 @@ seconds and stays in the corner throughout.
 |---|---|---|
 | Mapped vocabulary (the ceiling) | 73.3% | 1 |
 | Control T+3 · SALVAGE model **off** | **0.0%** | 0 · 150 |
-| SALVAGE **reading the codes** | **62.7%** | 25 |
+| SALVAGE **reading the codes** | **61.3%** | 28 |
 
 > Everything collapses to zero. The deterministic system **structurally cannot read
 > unfamiliar prose**. The model can — it recovers **85% of the ground lost**.
 >
-> And we score refusal, not just comprehension: **88%** of legible text read correctly,
+> And we score refusal, not just comprehension: **87%** of legible text read correctly,
 > **86%** of *illegible* text correctly declined. The **14% it over-read is on screen** —
 > all four the same string, *"amount not acceptable"*. Zero impossible charges unlocked.
 
@@ -228,12 +228,16 @@ Fails in `all-adverse`: **−7.9 ppt [−9.1, −6.7], 0/10 seeds.**
 
 | Cohort | Model off | Model on |
 |---|---|---|
-| Mapped vocabulary (Phase 3) | 70.7% exactly | 72.0 / 70.0 / 68.0 — **inside noise** |
-| Unmapped vocabulary | **0.0%** | **62.7%** — 85.5% of ground lost |
+| Mapped vocabulary (Phase 3) | 70.7% exactly | 72.0 / 71.7 / 70.0 / 68.0 — **inside noise** |
+| Unmapped vocabulary | **0.0%** | **61.3%** — 83.6% of ground lost |
 
-Comprehension: 88.3% correct, 0 misreads into different handling, 86.2% of illegible text
-declined, 13.8% over-read. Consequence: 192/192 on the right side, **0 impossible charges
-unlocked**. Live Groq `openai/gpt-oss-120b`: 33 calls, 184 cached, 0 fallbacks.
+Comprehension: 86.6% correct, 0 misreads into different handling, 86.2% of illegible text
+declined, 13.8% over-read. Consequence: 187/187 on the right side, **0 impossible charges
+unlocked**. Live Groq `openai/gpt-oss-120b`: 33 calls, 179 cached, 3 fallbacks.
+
+**This number moves between runs.** An earlier run of the identical command gave 62.7% and
+85.5%. It is a single live observation with no interval — quote it as "about 61%", and see
+open item 5.
 
 ---
 

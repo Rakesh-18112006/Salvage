@@ -138,13 +138,15 @@ settled by triage, so every decision reaches the model and the free tier paces o
 per minute.
 
 **Say out loud that it is pre-run and why.** Then point at the provenance block at the
-bottom of the file — `MODEL-DRIVEN — 33 live calls, 184 cached, 0 fallbacks` — which is
+bottom of the file — `MODEL-DRIVEN — 33 live calls, 179 cached` — which is
 the evidence that it was not a deterministic run wearing a model's name.
 
 Three things to rest on, in order:
 
 1. The collapse — control **0.0%**, deterministic agent **0.0%**, 150 cases to a human.
-2. The recovery — reading the codes gets **62.7%**, which is 85.5% of the ground lost.
+2. The recovery — reading the codes gets **61.3%**, which is 83.6% of the ground lost.
+   **Read the number off the file in front of you, not off this page** — this arm is live
+   and moves between runs (an earlier one gave 62.7%).
 3. **The over-confidence row.** `OVER-CONFIDENT, adopted anyway: 4 (13.8%)`, and the sample
    below it showing all four are the same string.
 
