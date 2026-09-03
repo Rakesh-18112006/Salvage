@@ -39,6 +39,11 @@ accident; do not do it on purpose either.
 Font size 16–18pt, dark theme, window ~120 columns. Have `out/dashboard.html` already open
 in a browser tab, scrolled to the top.
 
+**Check the dashboard banner says `DETERMINISTIC ONLY` and the headline reads
+`50.3% → 70.7% (+20.3 ppt)`.** If it says `MODEL-DRIVEN` you are about to put a one-cohort
+live number on screen next to a fifty-cohort claim, and they will look like a contradiction.
+Rebuild it with `node src/dashboard.ts --cases 300` — no `--use-model`.
+
 ---
 
 ## Timeline

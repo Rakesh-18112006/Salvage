@@ -84,7 +84,8 @@ seconds and stays in the corner throughout.
 > Now the uncomfortable part.
 >
 > On failures our taxonomy already maps, we ran the agent with the model on and off. Off:
-> **70.7%, exactly reproducible.** On, four runs: 72, 71.7, 70, 68. **That is inside its own
+> **70.7%, exactly reproducible.** On, five runs: 72 down to 67 — **mean 69.7, below the
+> model-off figure.** **That is inside its own
 > noise.** We're not claiming it.
 >
 > But that tests it on the lookup table's home ground. The real question is where the
@@ -198,6 +199,12 @@ Lift range across seeds: **13.7 to 25.3 ppt.** Published seed `20260101` ranks 2
 
 ### Single cohort (seed `20260101`, 300 cases, deterministic)
 
+This is what the dashboard shows, and it is **deterministic on purpose** — see the note in
+`scripts/prep-recording.sh`. Built with `--use-model` the dashboard puts a fifth live
+observation on screen (67.0%, +16.7 ppt) beside a deck claiming +19.8 ppt across fifty
+cohorts. Both are correct; together they look like a contradiction, and a five-minute video
+has no room to explain the difference.
+
 | Metric | Control (T+3) | SALVAGE | Delta |
 |---|---|---|---|
 | Recovery rate | 50.3% | 70.7% | **+20.3 ppt** |
@@ -228,7 +235,7 @@ Fails in `all-adverse`: **−7.9 ppt [−9.1, −6.7], 0/10 seeds.**
 
 | Cohort | Model off | Model on |
 |---|---|---|
-| Mapped vocabulary (Phase 3) | 70.7% exactly | 72.0 / 71.7 / 70.0 / 68.0 — **inside noise** |
+| Mapped vocabulary (Phase 3) | 70.7% exactly | 72.0 / 71.7 / 70.0 / 68.0 / 67.0 — mean **69.7**, *below* the floor |
 | Unmapped vocabulary | **0.0%** | **61.3%** — 83.6% of ground lost |
 
 Comprehension: 86.6% correct, 0 misreads into different handling, 86.2% of illegible text

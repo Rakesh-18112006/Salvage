@@ -67,9 +67,10 @@ Run the same cohort with the model on and off:
 |---|---|---|
 | Control (fixed T+3) | 50.3% | exactly |
 | SALVAGE, model **OFF** | **70.7%** | **exactly** |
-| SALVAGE, model ON — four runs | 72.0% / 71.7% / 70.0% / 68.0% | no |
+| SALVAGE, model ON — five runs | 72.0 / 71.7 / 70.0 / 68.0 / 67.0% — mean **69.7%** | no |
 
-**The model's effect is inside its own run-to-run variance.** Essentially all of the lift
+**The model's effect is inside its own run-to-run variance — and its mean across five runs
+is *below* the model-off figure.** Essentially all of the lift
 belongs to the deterministic machinery — the taxonomy, the cost model, the policy gate.
 That is a less exciting sentence than "the AI did it", and it is the one the evidence
 supports.

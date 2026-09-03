@@ -5,8 +5,8 @@
 # model-driven dashboard) so nothing on camera takes longer than 30 seconds, verifies the
 # claims you are about to make on screen, and refuses to pass if any of them is false.
 #
-#   bash scripts/prep-recording.sh              # full prep (~25 min, rebuilds dashboard)
-#   bash scripts/prep-recording.sh --no-dash    # skip the dashboard rebuild (~18 min)
+#   bash scripts/prep-recording.sh              # full prep (~18 min, rebuilds dashboard)
+#   bash scripts/prep-recording.sh --no-dash    # skip the dashboard rebuild
 #   bash scripts/prep-recording.sh --offline    # deterministic only, no model calls (~1 min)
 #
 # Every claim in docs/PITCH.md that can be recomputed IS recomputed here. If you add a
@@ -143,20 +143,32 @@ else
 fi
 
 if [ "$REBUILD_DASH" -eq 1 ]; then
-  step "7. Dashboard, model-driven (~7 min)"
-  printf '   working'
-  node src/dashboard.ts --cases 300 --use-model > "$OUT/dashboard.txt" 2>&1 &
-  pid=$!
-  while kill -0 $pid 2>/dev/null; do printf '.'; sleep 10; done
-  wait $pid
-  printf '\n'
+  # DETERMINISTIC on purpose, and this is a presentation decision worth explaining.
+  #
+  # The video shows the dashboard twice: for the break-even chart and for the audit
+  # trail. Neither needs the model. Built with --use-model it instead puts a fifth
+  # live observation of the agent arm on screen - one cohort, one run - beside a deck
+  # claiming +19.8 ppt across fifty cohorts. Both numbers would be correct and they
+  # would look like a contradiction, and a five-minute video has no room to explain
+  # the difference. Deterministic, the dashboard reads 50.3% -> 70.7% (+20.3 ppt),
+  # which is the single-seed figure already published, and it is exactly reproducible.
+  #
+  # The audit-trail case the close rests on is a revoked mandate, settled by
+  # deterministic triage before any model is consulted, so nothing is lost.
+  step "7. Dashboard (deterministic - see the note in this script)"
+  node src/dashboard.ts --cases 300 > "$OUT/dashboard.txt" 2>&1
+fi
+if grep -q '+20.3 ppt' "$OUT/dashboard.txt" 2>/dev/null; then
+  ok "dashboard headline: 50.3% -> 70.7% (+20.3 ppt), exactly reproducible"
+else
+  bad "dashboard headline is not the published single-seed figure - see $OUT/dashboard.txt"
+  grep -E 'control|provenance' "$OUT/dashboard.txt" 2>/dev/null | sed 's/^/      /'
 fi
 if grep -q 'MODEL-DRIVEN' out/dashboard.html 2>/dev/null; then
-  ok "dashboard banner says MODEL-DRIVEN"
-elif [ -f out/dashboard.html ]; then
-  printf '  \033[33m!\033[0m dashboard exists but is DETERMINISTIC - fine, just say so on camera\n'
-else
-  bad "no dashboard - run: node src/dashboard.ts --cases 300 --use-model"
+  bad "dashboard is MODEL-DRIVEN - it will contradict the deck's 50-cohort figure on screen"
+  printf '      \033[33mRebuild it without --use-model: node src/dashboard.ts --cases 300\033[0m\n'
+elif [ ! -f out/dashboard.html ]; then
+  bad "no dashboard - run: node src/dashboard.ts --cases 300"
 fi
 
 step "8. Chaos demo (a saved copy, in case Docker dies on camera)"
