@@ -251,6 +251,7 @@ The detail that used to live in this file now lives beside the code it describes
 | [Assumptions](docs/ASSUMPTIONS.md) | Every modelled constant, its basis, and the synthetic gateway fee |
 | [Regulatory](docs/REGULATORY.md) | What is sourced with a section number, and what is our own operational policy |
 | [Razorpay integration](docs/RAZORPAY-INTEGRATION.md) | The one claim that is not simulated — and what a first test-mode run would settle |
+| [Claims](docs/CLAIMS.md) | Every published figure, and the sentences it would be wrong to say |
 | [Open items](docs/OPEN-ITEMS.md) | Known gaps, stated plainly |
 
 **How it was built** — [`docs/phases/`](docs/phases)
@@ -263,13 +264,7 @@ The detail that used to live in this file now lives beside the code it describes
 | [4 — Policy gate](docs/phases/4-POLICY-GATE.md) | The deterministic rules the agent cannot argue past |
 | [5 — Evidence](docs/phases/5-EVIDENCE.md) | Chaos demo, dashboard, audit trail |
 
-**Pitch materials** — [`docs/presentation/`](docs/presentation)
 
-| Document | What is in it |
-|---|---|
-| [Pitch script](docs/presentation/PITCH.md) | The 5-minute script, the verified-numbers table, and the claims we must not make |
-| [Runsheet](docs/presentation/RUNSHEET.md) | What was on screen in each slot of the video |
-| [Slide deck](docs/presentation/SALVAGE-pitch-deck.pptx) | Eleven slides, one per section |
 
 ---
 

@@ -174,15 +174,15 @@ docs/
   DESIGN-DECISIONS.md       choices worth defending, and why
   REGULATORY.md             what is sourced with a section number, and what is ours
   RAZORPAY-INTEGRATION.md   the adapter, and the line we did not cross
+  CLAIMS.md                 every published figure, and what it would be wrong to say
   OPEN-ITEMS.md             known gaps, stated plainly
   LAYOUT.md                 this file
   phases/                   how the build went, phase by phase
-  presentation/             the 5-minute pitch script, runsheet, and deck
 
 migrations/
   001_init.sql              the schema IS the specification of the guarantees
   002_rail_ledger.sql       the simulated gateway's own memory
 
 scripts/
-  prep-recording.sh         recomputes every published claim and fails if one moved
+  verify-claims.sh          recomputes every published claim and fails if one moved
 ```

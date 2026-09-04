@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Pre-flight for the 5-minute video.
+# Recompute every published claim, and fail if one has moved.
 #
-# Run this BEFORE you hit record. It does the two slow things (a live model run and the
-# model-driven dashboard) so nothing on camera takes longer than 30 seconds, verifies the
-# claims you are about to make on screen, and refuses to pass if any of them is false.
+# Written before recording the demo video, where being wrong on camera is expensive, but
+# it is not video-specific: it re-runs each experiment behind a number in the README and
+# asserts the number it produces. It caught a dashboard that disagreed with the slide deck
+# a day before recording.
 #
-#   bash scripts/prep-recording.sh              # full prep (~18 min, rebuilds dashboard)
-#   bash scripts/prep-recording.sh --no-dash    # skip the dashboard rebuild
-#   bash scripts/prep-recording.sh --offline    # deterministic only, no model calls (~1 min)
+# The two slow steps are live model runs. Use --offline to skip them and check only the
+# deterministic claims, which is most of them.
 #
-# Every claim in docs/PITCH.md that can be recomputed IS recomputed here. If you add a
+#   bash scripts/verify-claims.sh              # everything (~18 min; two live model runs)
+#   bash scripts/verify-claims.sh --no-dash    # skip the dashboard rebuild
+#   bash scripts/verify-claims.sh --offline    # deterministic claims only (~1 min, no key)
+#
+# Every claim in docs/CLAIMS.md that can be recomputed IS recomputed here. If you add a
 # number to the script, add its check below - a prep script that verifies a subset of the
 # claims gives false confidence about the rest.
 set -uo pipefail
@@ -60,7 +64,7 @@ node src/robustness.ts --scenario baseline > "$OUT/ladder.txt" 2>&1
 if grep -qE '\| baseline +\| 49\.4% +\| 49\.4% +\| 56\.6% +\| 68\.8%' "$OUT/ladder.txt"; then
   ok "ladder: 49.4 / 49.4 / 56.6 / 68.8 - arm 2 still gains nothing"
 else
-  bad "LADDER MOVED - docs/PITCH.md 0:32 table is now wrong. See $OUT/ladder.txt"
+  bad "LADDER MOVED - the ablation table in docs/CLAIMS.md is now wrong. See $OUT/ladder.txt"
   grep -E '^\| baseline' "$OUT/ladder.txt" | sed 's/^/      /'
 fi
 
@@ -69,7 +73,7 @@ node src/seeds.ts --seeds 50 --cases 300 > "$OUT/seeds.txt" 2>&1
 if grep -q '19.8% \[19.1, 20.4\]' "$OUT/seeds.txt" && grep -q '50/50 seeds' "$OUT/seeds.txt"; then
   ok "interval: +19.8 ppt [19.1, 20.4], 50/50 seeds"
 else
-  bad "INTERVAL MOVED - docs/PITCH.md 1:07 table is now wrong. See $OUT/seeds.txt"
+  bad "INTERVAL MOVED - the multi-cohort table in docs/CLAIMS.md is now wrong. See $OUT/seeds.txt"
 fi
 if grep -q '29 of 50' "$OUT/seeds.txt"; then
   ok "published seed still ranks 29 of 50 (the line that answers cherry-picking)"
@@ -83,7 +87,7 @@ node src/robustness.ts > "$OUT/robustness.txt" 2>&1
 if grep -q '10 of 11' "$OUT/robustness.txt"; then
   ok "robustness: lift established in 10 of 11 worlds"
 else
-  bad "ROBUSTNESS VERDICT MOVED - docs/PITCH.md 2:31 is now wrong. See $OUT/robustness.txt"
+  bad "ROBUSTNESS VERDICT MOVED - the robustness claim in docs/CLAIMS.md is now wrong. See $OUT/robustness.txt"
   grep -A6 'VERDICT' "$OUT/robustness.txt" | sed 's/^/      /'
 fi
 if grep -qE '^\| all-adverse.*-7\.9' "$OUT/robustness.txt"; then
@@ -158,17 +162,17 @@ if [ "$REBUILD_DASH" -eq 1 ]; then
   step "7. Dashboard (deterministic - see the note in this script)"
   node src/dashboard.ts --cases 300 > "$OUT/dashboard.txt" 2>&1
 fi
-if grep -q '+20.3 ppt' "$OUT/dashboard.txt" 2>/dev/null; then
-  ok "dashboard headline: 50.3% -> 70.7% (+20.3 ppt), exactly reproducible"
-else
-  bad "dashboard headline is not the published single-seed figure - see $OUT/dashboard.txt"
-  grep -E 'control|provenance' "$OUT/dashboard.txt" 2>/dev/null | sed 's/^/      /'
-fi
-if grep -q 'MODEL-DRIVEN' out/dashboard.html 2>/dev/null; then
-  bad "dashboard is MODEL-DRIVEN - it will contradict the deck's 50-cohort figure on screen"
-  printf '      \033[33mRebuild it without --use-model: node src/dashboard.ts --cases 300\033[0m\n'
-elif [ ! -f out/dashboard.html ]; then
+# Checked against out/dashboard.html itself rather than the build log: --offline does
+# not rebuild the dashboard, and a stale log would report on a run no longer on disk.
+if [ ! -f out/dashboard.html ]; then
   bad "no dashboard - run: node src/dashboard.ts --cases 300"
+elif grep -q 'MODEL-DRIVEN' out/dashboard.html; then
+  bad "dashboard is MODEL-DRIVEN - one live cohort, which contradicts the 50-cohort figure"
+  printf '      \033[33mRebuild without --use-model: node src/dashboard.ts --cases 300\033[0m\n'
+elif grep -q '+20.3 ppt' out/dashboard.html; then
+  ok "dashboard: 50.3% -> 70.7% (+20.3 ppt), deterministic and exactly reproducible"
+else
+  bad "dashboard headline is not the published single-seed figure of +20.3 ppt"
 fi
 
 step "8. Chaos demo (a saved copy, in case Docker dies on camera)"
@@ -187,11 +191,11 @@ fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
                       '| tokens left this minute:', r.headers.get('x-ratelimit-remaining-tokens')))
  .catch(()=>console.log('  (could not read budget)'));" 2>/dev/null
 
-step "READY?"
+step "VERDICT"
 if [ "$FAILED" -eq 0 ]; then
   printf '  \033[32mAll checks passed. Files for the recording are in %s/\033[0m\n' "$OUT"
-  printf '  Follow docs/presentation/RUNSHEET.md.\n'
+  printf '  Every published number still matches what the code produces.\n'
 else
-  printf '  \033[31mSomething failed above. Fix it before recording.\033[0m\n'
+  printf '  \033[31mA published claim no longer matches what the code produces.\033[0m\n'
   exit 1
 fi
