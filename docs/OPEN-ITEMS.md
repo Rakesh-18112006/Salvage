@@ -67,7 +67,7 @@ document something different — *"we attempt to retry only when we get the conf
 rejection of the last payment"* — so the control arm is faithful for the card and UPI rails
 and approximate for the ~28% of the cohort on eNACH. Both arms face the identical rail mix,
 so it does not flatter either one in particular. See
-[PHASE1-BASELINE.md](PHASE1-BASELINE.md).
+[PHASE1-BASELINE.md](phases/1-BASELINE.md).
 
 **9. Verify the Buildathon submission deadline and requirements** at `razorpay.com/buildathon`.
 
@@ -92,7 +92,7 @@ so it does not flatter either one in particular. See
   **synthetic modelling parameter, not a Razorpay price**, documented in
   [ASSUMPTIONS.md](ASSUMPTIONS.md).
 - ~~Fix the Phase 1 `UNKNOWN` opening-attempt defect and re-baseline.~~ **Done** — see
-  [PHASE1-BASELINE.md](PHASE1-BASELINE.md).
+  [PHASE1-BASELINE.md](phases/1-BASELINE.md).
 - ~~The `GEMINI_API_KEY` free tier is quota-limited and forces fallbacks.~~ **Superseded** —
   the project migrated off Gemini on 2026-08-31. The chain is now
   **Groq → OpenRouter → Gemini → deterministic fallback**, only `GROQ_API_KEY` is required,

@@ -14,7 +14,7 @@
  * produced by each path - never from configuration.
  */
 import type { AgentStats } from './agentPolicy.ts';
-import type { GeminiUsage } from './geminiClient.ts';
+import type { ModelUsage } from './model/decisionModel.ts';
 
 export type ProvenanceKind =
   /** The model was never enabled. Honest, reproducible, and needs no API key. */
@@ -54,7 +54,7 @@ export interface ProvenanceInput {
     AgentStats,
     'decisions' | 'triagedDeterministically' | 'modelCalls' | 'cacheHits' | 'fallbacks'
   >;
-  readonly usage: GeminiUsage | null;
+  readonly usage: ModelUsage | null;
 }
 
 /**

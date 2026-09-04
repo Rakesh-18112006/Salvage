@@ -15,7 +15,7 @@ import { loadEnv } from './config.ts';
 import { formatINR } from './domain/money.ts';
 import { ControlT3Policy } from './policy/controlT3.ts';
 import { AgentPolicy } from './agent/agentPolicy.ts';
-import { buildModelChain } from './agent/modelChain.ts';
+import { buildModelChain } from './agent/model/chain.ts';
 import { provenanceOf } from './agent/provenance.ts';
 import { renderArmMetrics, renderTable } from './engine/metrics.ts';
 import { COST } from './assumptions.ts';

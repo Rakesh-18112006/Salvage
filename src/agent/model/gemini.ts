@@ -1,9 +1,12 @@
 /**
- * Gemini client.
+ * Gemini provider.
  *
  * Deliberately thin. It does four things the agent layer should not have to think about:
  * structured output, a model fallback chain, retry with backoff, and usage accounting.
  * It contains no recovery logic of any kind.
+ *
+ * Third in the chain behind Groq and OpenRouter (see chain.ts) since the migration on
+ * 2026-08-31, and kept because a provider chain with one provider is not a chain.
  *
  * MODEL CHOICE, AND WHY IT IS NOT SIMPLY "THE NEWEST"
  * --------------------------------------------------
@@ -26,110 +29,24 @@
  */
 import { GoogleGenAI } from '@google/genai';
 
-import { optionalEnv, requireEnv } from '../config.ts';
+import { optionalEnv, requireEnv } from '../../config.ts';
+import {
+  LlmUnavailableError,
+  type DecisionModel,
+  type GenerateArgs,
+  type GenerateResult,
+  type ModelUsage,
+} from './decisionModel.ts';
+import { QUOTA_BACKOFF_MS, RateLimiter, RETRYABLE_STATUS, sleep } from './rateLimiter.ts';
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
 export const DEFAULT_FALLBACKS = ['gemini-3.5-flash', 'gemini-3-flash-preview'];
-
-/** Errors worth retrying: congestion, rate limits, and transient server faults. */
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-
-/**
- * A quota rejection is not congestion - it means we are asking too fast, and retrying
- * immediately makes it worse. It gets a much longer backoff than a 503.
- */
-const QUOTA_BACKOFF_MS = 4_000;
-
-/**
- * Client-side rate limiting.
- *
- * The API key in use is quota-limited, and firing the agent's decisions at it in
- * parallel produced mostly 429s. Rather than treat that as the API's problem, the
- * client paces itself: at most `maxConcurrent` requests in flight, and at least
- * `minIntervalMs` between request starts. Tune with GEMINI_MAX_CONCURRENT and
- * GEMINI_MIN_INTERVAL_MS.
- */
-class RateLimiter {
-  private inFlight = 0;
-  private lastStartedAt = 0;
-  private readonly waiters: Array<() => void> = [];
-  private readonly maxConcurrent: number;
-  private readonly minIntervalMs: number;
-
-  constructor(maxConcurrent: number, minIntervalMs: number) {
-    this.maxConcurrent = maxConcurrent;
-    this.minIntervalMs = minIntervalMs;
-  }
-
-  async acquire(): Promise<void> {
-    while (this.inFlight >= this.maxConcurrent) {
-      await new Promise<void>((resolve) => this.waiters.push(resolve));
-    }
-    this.inFlight++;
-    const wait = this.lastStartedAt + this.minIntervalMs - Date.now();
-    if (wait > 0) await sleep(wait);
-    this.lastStartedAt = Date.now();
-  }
-
-  release(): void {
-    this.inFlight--;
-    this.waiters.shift()?.();
-  }
-}
-
-export interface GenerateArgs {
-  readonly system: string;
-  readonly user: string;
-  readonly responseSchema: unknown;
-  readonly temperature?: number;
-  readonly maxOutputTokens?: number;
-  readonly timeoutMs?: number;
-}
-
-/**
- * The narrow surface the agent depends on. Declared as an interface so a test can supply
- * a stub - a model that always proposes retrying a revoked mandate, or one that is always
- * unavailable - without a network call. Guard rails you cannot test are decoration.
- */
-export interface DecisionModel {
-  generateJson<T>(args: GenerateArgs, maxAttemptsPerModel?: number): Promise<GenerateResult<T>>;
-}
-
-export interface GenerateResult<T> {
-  readonly value: T;
-  readonly model: string;
-  readonly latencyMs: number;
-  readonly promptTokens: number;
-  readonly outputTokens: number;
-  readonly attempts: number;
-}
-
-export class LlmUnavailableError extends Error {
-  readonly lastStatus: number | null;
-  constructor(message: string, lastStatus: number | null) {
-    super(message);
-    this.name = 'LlmUnavailableError';
-    this.lastStatus = lastStatus;
-  }
-}
 
 function statusOf(err: unknown): number | null {
   const msg = err instanceof Error ? err.message : String(err);
   const m = /"code"\s*:\s*(\d{3})/.exec(msg) ?? /\b(\d{3})\b/.exec(msg);
   return m === null ? null : Number(m[1]);
 }
-
-export interface ModelUsage {
-  calls: number;
-  failedCalls: number;
-  promptTokens: number;
-  outputTokens: number;
-  totalLatencyMs: number;
-  byModel: Record<string, number>;
-}
-
-/** Kept as an alias so existing imports and tests keep working. */
-export type GeminiUsage = ModelUsage;
 
 export class GeminiClient implements DecisionModel {
   private readonly ai: GoogleGenAI;
@@ -279,10 +196,6 @@ export class GeminiClient implements DecisionModel {
       if (timer !== undefined) clearTimeout(timer);
     }
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 /** Uppercase the `type` keywords and drop keywords Gemini's schema dialect rejects. */

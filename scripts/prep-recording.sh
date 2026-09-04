@@ -190,7 +190,7 @@ fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',
 step "READY?"
 if [ "$FAILED" -eq 0 ]; then
   printf '  \033[32mAll checks passed. Files for the recording are in %s/\033[0m\n' "$OUT"
-  printf '  Follow docs/RUNSHEET.md.\n'
+  printf '  Follow docs/presentation/RUNSHEET.md.\n'
 else
   printf '  \033[31mSomething failed above. Fix it before recording.\033[0m\n'
   exit 1

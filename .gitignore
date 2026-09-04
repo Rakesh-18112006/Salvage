@@ -5,3 +5,9 @@ out/
 # Secrets. .env.example is committed; .env never is.
 .env
 .env.local
+
+# OS and editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp

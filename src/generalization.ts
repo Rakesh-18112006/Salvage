@@ -63,7 +63,7 @@
  */
 import { loadEnv } from './config.ts';
 import { AgentPolicy, type UnmappedRead } from './agent/agentPolicy.ts';
-import { buildModelChain } from './agent/modelChain.ts';
+import { buildModelChain } from './agent/model/chain.ts';
 import { provenanceOf } from './agent/provenance.ts';
 import { CORRECT_INTERVENTION, isTerminal, type FailureClass } from './domain/taxonomy.ts';
 import { renderTable } from './engine/metrics.ts';

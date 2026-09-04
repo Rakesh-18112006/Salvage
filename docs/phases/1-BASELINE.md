@@ -3,11 +3,11 @@
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
-> by a seeded model in [`src/sim/`](../src/sim). **No number in this document comes from
+> by a seeded model in [`src/sim/`](../../src/sim). **No number in this document comes from
 > live traffic, from Razorpay, or from any bank.** This is a working prototype with a
 > measured comparison against a control arm, not a production system.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md)
 
 ---
 
@@ -22,12 +22,12 @@ number:
 > so the reported 48.7% baseline recovery rate was measured against a polluted cohort.
 
 **The fix is structural, not a patch.** In
-[`src/sim/population.ts`](../src/sim/population.ts), candidate subscriptions are generated
+[`src/sim/population.ts`](../../src/sim/population.ts), candidate subscriptions are generated
 and charged; successes are **discarded**; generation continues until the target cohort
 size is reached. The cohort is therefore "subscriptions whose opening charge genuinely
 failed" *by construction*, and every case opens on a real decline code.
 
-Three tests in [`test/cohort.test.ts`](../test/cohort.test.ts) hold the fix in place: no
+Three tests in [`test/cohort.test.ts`](../../test/cohort.test.ts) hold the fix in place: no
 case may open with an empty code, an `UNKNOWN` opening must correspond to a genuinely
 unmapped `SIM_RAILCODE_*`, and the discard count must be reported rather than hidden.
 

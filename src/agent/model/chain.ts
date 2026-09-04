@@ -11,16 +11,16 @@
  * deliberately outside the model layer: it is not a worse model, it is a different kind
  * of thing, and the provenance report must be able to say plainly that no model answered.
  */
-import { optionalEnv } from '../config.ts';
+import { optionalEnv } from '../../config.ts';
 import {
-  GeminiClient,
   LlmUnavailableError,
   type DecisionModel,
   type GenerateArgs,
   type GenerateResult,
   type ModelUsage,
-} from './geminiClient.ts';
-import { groqClient, openRouterClient } from './openAiCompatibleClient.ts';
+} from './decisionModel.ts';
+import { GeminiClient } from './gemini.ts';
+import { groqClient, openRouterClient } from './openAiCompatible.ts';
 
 interface Link {
   readonly name: string;

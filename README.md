@@ -2,6 +2,8 @@
 
 **Razorpay AI Buildathon 2026 · Track 3: AI Revenue Recovery**
 
+**▶ Demo video: <!-- TODO: paste the YouTube URL here before submitting -->**
+
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
@@ -239,22 +241,35 @@ presented as an AI result.
 
 The detail that used to live in this file now lives beside the code it describes.
 
+**Understanding the system**
+
 | Document | What is in it |
 |---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit together |
-| [PITCH.md](docs/PITCH.md) | 5-minute video script, verified numbers, and the claims we must not make |
-| [RUNSHEET.md](docs/RUNSHEET.md) | Demo run order |
-| [PHASE1-BASELINE.md](docs/PHASE1-BASELINE.md) | Simulator, failure taxonomy, T+3 control arm, and the Phase 1 defect we found and fixed |
-| [PHASE2-DURABILITY.md](docs/PHASE2-DURABILITY.md) | Postgres, inbox/outbox, idempotent executor, crash safety |
-| [PHASE3-AGENT.md](docs/PHASE3-AGENT.md) | The agent, the cost model, and the honest null result on the LLM |
-| [PHASE4-POLICY-GATE.md](docs/PHASE4-POLICY-GATE.md) | The deterministic rules the agent cannot argue past |
-| [PHASE5-EVIDENCE.md](docs/PHASE5-EVIDENCE.md) | Chaos demo, dashboard, audit trail |
-| [RAZORPAY-INTEGRATION.md](docs/RAZORPAY-INTEGRATION.md) | The one claim that is not simulated — and what a first test-mode run would settle |
-| [DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) | Choices worth defending, and why |
-| [ASSUMPTIONS.md](docs/ASSUMPTIONS.md) | Every modelled constant, its basis, and the synthetic gateway fee |
-| [REGULATORY.md](docs/REGULATORY.md) | What is sourced with a section number, and what is our own operational policy |
-| [OPEN-ITEMS.md](docs/OPEN-ITEMS.md) | Known gaps |
-| [LAYOUT.md](docs/LAYOUT.md) | Repository layout, file by file |
+| [Repository layout](docs/LAYOUT.md) | Where everything lives, and the four files to read first |
+| [Architecture](docs/ARCHITECTURE.md) | How the pieces fit together |
+| [Design decisions](docs/DESIGN-DECISIONS.md) | Choices worth defending, and why |
+| [Assumptions](docs/ASSUMPTIONS.md) | Every modelled constant, its basis, and the synthetic gateway fee |
+| [Regulatory](docs/REGULATORY.md) | What is sourced with a section number, and what is our own operational policy |
+| [Razorpay integration](docs/RAZORPAY-INTEGRATION.md) | The one claim that is not simulated — and what a first test-mode run would settle |
+| [Open items](docs/OPEN-ITEMS.md) | Known gaps, stated plainly |
+
+**How it was built** — [`docs/phases/`](docs/phases)
+
+| Phase | What it added |
+|---|---|
+| [1 — Baseline](docs/phases/1-BASELINE.md) | Simulator, failure taxonomy, T+3 control arm, and the Phase 1 defect we found and fixed |
+| [2 — Durability](docs/phases/2-DURABILITY.md) | Postgres, inbox/outbox, idempotent executor, crash safety |
+| [3 — The agent](docs/phases/3-AGENT.md) | Nine actions, the cost model, and the honest null result on the LLM |
+| [4 — Policy gate](docs/phases/4-POLICY-GATE.md) | The deterministic rules the agent cannot argue past |
+| [5 — Evidence](docs/phases/5-EVIDENCE.md) | Chaos demo, dashboard, audit trail |
+
+**Pitch materials** — [`docs/presentation/`](docs/presentation)
+
+| Document | What is in it |
+|---|---|
+| [Pitch script](docs/presentation/PITCH.md) | The 5-minute script, the verified-numbers table, and the claims we must not make |
+| [Runsheet](docs/presentation/RUNSHEET.md) | What was on screen in each slot of the video |
+| [Slide deck](docs/presentation/SALVAGE-pitch-deck.pptx) | Eleven slides, one per section |
 
 ---
 

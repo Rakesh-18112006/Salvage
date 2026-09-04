@@ -3,11 +3,11 @@
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
-> by a seeded model in [`src/sim/`](../src/sim). **No number in this document comes from
+> by a seeded model in [`src/sim/`](../../src/sim). **No number in this document comes from
 > live traffic, from Razorpay, or from any bank.** This is a working prototype with a
 > measured comparison against a control arm, not a production system.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md)
 
 ---
 
@@ -23,7 +23,7 @@ node src/dashboard.ts --cases 300 && open out/dashboard.html
 
 ### The chaos demo
 
-Real worker **containers** running [`src/worker.ts`](../src/worker.ts), killed with a real
+Real worker **containers** running [`src/worker.ts`](../../src/worker.ts), killed with a real
 `SIGKILL`. A test that simulates a crash by throwing an `Error` proves the catch block
 works; nothing here catches anything — the process stops existing and the guarantees have
 to survive on their own.
@@ -74,8 +74,8 @@ defect rather than a demo artifact. A fourth surfaced once the containers existe
 
 ### Documents
 
-- [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) — the four layers, why they are split that way, where each guarantee physically lives, and what is real vs simulated.
-- [`docs/RUNSHEET.md`](RUNSHEET.md) — **the recording runsheet**: what is on screen in each time slot, the exact command, and full slide content for the slots with no command. Start here on the day.
-- [`docs/PITCH.md`](PITCH.md) — the 5-minute video script with shot list, the exact commands per beat, a pre-flight checklist, and a "things not to say" list (don't claim production-readiness; don't quote gross recovery; don't cite the repealed 2019 circular; don't claim the agent wins on every cost measure).
+- [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) — the four layers, why they are split that way, where each guarantee physically lives, and what is real vs simulated.
+- [`docs/RUNSHEET.md`](../presentation/RUNSHEET.md) — **the recording runsheet**: what is on screen in each time slot, the exact command, and full slide content for the slots with no command. Start here on the day.
+- [`docs/PITCH.md`](../presentation/PITCH.md) — the 5-minute video script with shot list, the exact commands per beat, a pre-flight checklist, and a "things not to say" list (don't claim production-readiness; don't quote gross recovery; don't cite the repealed 2019 circular; don't claim the agent wins on every cost measure).
 
 ---

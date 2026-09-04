@@ -3,11 +3,11 @@
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
-> by a seeded model in [`src/sim/`](../src/sim). **No number in this document comes from
+> by a seeded model in [`src/sim/`](../../src/sim). **No number in this document comes from
 > live traffic, from Razorpay, or from any bank.** This is a working prototype with a
 > measured comparison against a control arm, not a production system.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md)
 
 ---
 
@@ -85,9 +85,9 @@ would expect.
 > #### Which path produced these numbers
 >
 > **A live, model-driven run.** Provenance is derived from what was **observed**, never
-> from flags ([`src/agent/provenance.ts`](../src/agent/provenance.ts)): a run that requested
+> from flags ([`src/agent/provenance.ts`](../../src/agent/provenance.ts)): a run that requested
 > the model and got zero successful calls is reported as `FALLBACK ONLY` and **exits
-> non-zero**. Eight tests in [`test/provenance.test.ts`](../test/provenance.test.ts) pin this.
+> non-zero**. Eight tests in [`test/provenance.test.ts`](../../test/provenance.test.ts) pin this.
 >
 > `--deterministic-only` remains available and reproduces the middle row above with **no
 > API key at all** — that is the floor, and it is what anyone can verify from a clean
@@ -146,7 +146,7 @@ Groq's free tier needs no card and supports **strict JSON-schema constrained dec
 so the response shape is *guaranteed* rather than best-effort.
 
 **The chain spans providers, not just models**
-([`src/agent/modelChain.ts`](../src/agent/modelChain.ts)):
+([`src/agent/model/chain.ts`](../../src/agent/model/chain.ts)):
 
 ```
 Groq → OpenRouter → Gemini → [deterministic fallback, outside the model layer]
@@ -187,7 +187,7 @@ known.
 ### The eval set
 
 Built around the three judgment scenarios the spec names
-([`test/agentEval.test.ts`](../test/agentEval.test.ts)), each checked twice:
+([`test/agentEval.test.ts`](../../test/agentEval.test.ts)), each checked twice:
 
 - **Offline (always runs)** — the *deterministic* machinery must get these right on its own. The EV model must rank time-shifting above retry-tomorrow; the fallback must choose it; the shift must land *after* the inflow, never before. If the answer only appears with a model in the loop, the reasoning is unverifiable and there is no floor when the API is down.
 - **Live (`RUN_LLM_EVAL=1`)** — the same scenarios against the real model. Kept out of `npm test` because a green suite must not depend on someone else's rate limiter. It passes: the model picks `TIME_SHIFT` for insufficient funds on the 27th when payday is the 1st, and defers on a degraded rail.
@@ -196,7 +196,7 @@ Built around the three judgment scenarios the spec names
 
 1. **Cash and shadow costs were being summed.** Gateway fees (money out) and customer patience (a price we invented) were added into one "cost per rupee recovered" and reported as a financial metric. They are now three separate buckets, all reported.
 2. **A thundering herd on the decision cache.** With cases running concurrently, a dozen with the same signature all missed the cache, all called the model, and eleven calls answered a question already asked. The cache now stores the *in-flight promise*.
-3. **A rejected shared promise took down the whole batch.** Once the cache stored promises, a single quota rejection propagated to every case joined to it, and only the case that created it had a `catch`. It crashed a 120-case run outright. Both are pinned by [`test/agentResilience.test.ts`](../test/agentResilience.test.ts), which fails without the fix.
+3. **A rejected shared promise took down the whole batch.** Once the cache stored promises, a single quota rejection propagated to every case joined to it, and only the case that created it had a `catch`. It crashed a 120-case run outright. Both are pinned by [`test/agentResilience.test.ts`](../../test/agentResilience.test.ts), which fails without the fix.
 
 ### Two more simulator assumptions this phase required
 

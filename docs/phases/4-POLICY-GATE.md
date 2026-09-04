@@ -3,11 +3,11 @@
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
-> by a seeded model in [`src/sim/`](../src/sim). **No number in this document comes from
+> by a seeded model in [`src/sim/`](../../src/sim). **No number in this document comes from
 > live traffic, from Razorpay, or from any bank.** This is a working prototype with a
 > measured comparison against a control arm, not a production system.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md)
 
 ---
 
@@ -24,7 +24,7 @@ out of the gate.
 
 Spec rule 1 forbids inventing compliance facts, so these were read from the RBI's own
 site and each carries its citation in
-[`src/policy/compliance.ts`](../src/policy/compliance.ts):
+[`src/policy/compliance.ts`](../../src/policy/compliance.ts):
 
 | Parameter | Value | Section | Source |
 |---|---|---|---|
@@ -35,7 +35,7 @@ site and each carries its citation in
 
 Verified 2026-08-31 by two independent reads of the RBI page, which agreed on every figure
 and section number. Each value carries its verbatim quote in
-[`src/policy/compliance.ts`](../src/policy/compliance.ts).
+[`src/policy/compliance.ts`](../../src/policy/compliance.ts).
 
 **The instrument in force is not the one most write-ups cite.** Nearly everything written
 about Indian e-mandates points at RBI/2019-20/47 (21 August 2019). That circular has been
@@ -121,7 +121,7 @@ those. The gate is there for when it is wrong, not because it is.
 ### Two bugs this phase exposed
 
 1. **One action per case was reaching the executor unadjudicated.** Cohort seeding hardcoded "retry at T+1" and enqueued it directly, bypassing the policy and the gate — including charges against already-revoked mandates. That is precisely the hole the acceptance criterion is written to catch. Both paths now share one `decideNext` routine.
-2. **The strict-compliance flag was silently a no-op.** The rule checked only the *age* of the most recent notice, so a single cycle-opening notification authorised unlimited retries and `per_debit` produced numbers identical to `per_cycle`. A notice is now consumed by the debit it authorises. Both are pinned by [`test/policyGate.test.ts`](../test/policyGate.test.ts).
+2. **The strict-compliance flag was silently a no-op.** The rule checked only the *age* of the most recent notice, so a single cycle-opening notification authorised unlimited retries and `per_debit` produced numbers identical to `per_cycle`. A notice is now consumed by the debit it authorises. Both are pinned by [`test/policyGate.test.ts`](../../test/policyGate.test.ts).
 
 ### Acceptance
 

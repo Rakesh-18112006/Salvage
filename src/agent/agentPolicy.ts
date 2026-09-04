@@ -44,8 +44,8 @@ import {
   believedSelfHeal,
   bundleCost,
 } from './costModel.ts';
-import { LlmUnavailableError, type DecisionModel } from './geminiClient.ts';
-import { buildModelChain } from './modelChain.ts';
+import { LlmUnavailableError, type DecisionModel } from './model/decisionModel.ts';
+import { buildModelChain } from './model/chain.ts';
 import {
   escalate_to_human,
   get_bank_health,

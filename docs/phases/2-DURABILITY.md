@@ -3,11 +3,11 @@
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
 > Customers, banks, mandates, decline codes, outages, and payment outcomes are generated
-> by a seeded model in [`src/sim/`](../src/sim). **No number in this document comes from
+> by a seeded model in [`src/sim/`](../../src/sim). **No number in this document comes from
 > live traffic, from Razorpay, or from any bank.** This is a working prototype with a
 > measured comparison against a control arm, not a production system.
 
-[← back to the README](../README.md)
+[← back to the README](../../README.md)
 
 ---
 
@@ -85,7 +85,7 @@ simulated instant, so the audit trail reads in real dates and no metric is affec
 
 There are now two engines that can run the same scenario. If they disagreed on the same
 seed, one would be wrong and every number after that would be suspect — so agreement is
-asserted, not assumed ([`test/engineEquivalence.test.ts`](../test/engineEquivalence.test.ts)):
+asserted, not assumed ([`test/engineEquivalence.test.ts`](../../test/engineEquivalence.test.ts)):
 
 - **Circuit breakers off** — the durable spine reproduces the in-memory runner *exactly*: same outcome, same attempt count, same closing timestamp, for all 120 cases.
 - **Circuit breakers on** — every difference is confined to cases a breaker actually deferred. That is a real behavioural difference (Phase 1 has no breakers), and it is measured rather than waved away. On the seeded cohort a breaker costs one recovery: an attempt that would have succeeded was deferred because that bank was degraded for other customers at the time. That is the trade the breaker exists to make.

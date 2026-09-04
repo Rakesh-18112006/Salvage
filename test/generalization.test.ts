@@ -18,7 +18,7 @@ import { describe, test } from 'node:test';
 import type { ActionBundle, CaseView, ChargeAttempt } from '../src/domain/types.ts';
 import { classify, isTerminal, type FailureClass } from '../src/domain/taxonomy.ts';
 import { AgentPolicy } from '../src/agent/agentPolicy.ts';
-import type { DecisionModel, GenerateArgs, GenerateResult } from '../src/agent/geminiClient.ts';
+import type { DecisionModel, GenerateArgs, GenerateResult } from '../src/agent/model/decisionModel.ts';
 import { evaluate, workingFailureClass, type GateInput } from '../src/policy/gate.ts';
 import { RBI } from '../src/policy/compliance.ts';
 import { allDialectResponses, dialectResponse, dialectCodes } from '../src/eval/railDialect.ts';

@@ -29,14 +29,14 @@
  * smaller one is quick, and being quick about the wrong answer is not a trade worth
  * making. Re-measure before trusting this - it is one observation on one day.
  */
-import { optionalEnv } from '../config.ts';
+import { optionalEnv } from '../../config.ts';
 import {
   LlmUnavailableError,
   type DecisionModel,
   type GenerateArgs,
   type GenerateResult,
   type ModelUsage,
-} from './geminiClient.ts';
+} from './decisionModel.ts';
 import { QUOTA_BACKOFF_MS, RateLimiter, RETRYABLE_STATUS, sleep } from './rateLimiter.ts';
 
 export interface OpenAiCompatibleOptions {

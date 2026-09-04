@@ -20,7 +20,7 @@ import { formatINR } from './domain/money.ts';
 import { isTerminal } from './domain/taxonomy.ts';
 import type { RecoveryCase } from './domain/types.ts';
 import { AgentPolicy } from './agent/agentPolicy.ts';
-import { buildModelChain } from './agent/modelChain.ts';
+import { buildModelChain } from './agent/model/chain.ts';
 import { provenanceOf, type Provenance } from './agent/provenance.ts';
 import { ControlT3Policy } from './policy/controlT3.ts';
 import { ALL_SOURCED_VALUES } from './policy/compliance.ts';

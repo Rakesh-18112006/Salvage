@@ -18,7 +18,7 @@ import {
   type DecisionModel,
   type GenerateArgs,
   type GenerateResult,
-} from '../src/agent/geminiClient.ts';
+} from '../src/agent/model/decisionModel.ts';
 import { believedSelfHeal, actionCost } from '../src/agent/costModel.ts';
 import { buildAtRiskPopulation } from '../src/sim/population.ts';
 import { DAY_MS, HOUR_MS, fromIst } from '../src/sim/clock.ts';

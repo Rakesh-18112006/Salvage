@@ -14,7 +14,7 @@ import {
   type DecisionModel,
   type GenerateArgs,
   type GenerateResult,
-} from '../src/agent/geminiClient.ts';
+} from '../src/agent/model/decisionModel.ts';
 import { buildAtRiskPopulation, World } from '../src/sim/population.ts';
 import { DAY_MS, fromIst } from '../src/sim/clock.ts';
 

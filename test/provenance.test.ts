@@ -16,16 +16,16 @@ import { provenanceOf } from '../src/agent/provenance.ts';
 import {
   LlmUnavailableError,
   type DecisionModel,
-  type GeminiUsage,
+  type ModelUsage,
   type GenerateArgs,
   type GenerateResult,
-} from '../src/agent/geminiClient.ts';
+} from '../src/agent/model/decisionModel.ts';
 import { buildAtRiskPopulation } from '../src/sim/population.ts';
 import { runArm } from '../src/engine/runner.ts';
 
 const SEED = 'provenance';
 
-function usage(over: Partial<GeminiUsage> = {}): GeminiUsage {
+function usage(over: Partial<ModelUsage> = {}): ModelUsage {
   return {
     calls: 0,
     failedCalls: 0,

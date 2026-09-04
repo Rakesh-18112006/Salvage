@@ -29,7 +29,7 @@ import { describe, test } from 'node:test';
 import type { CaseView, ChargeAttempt } from '../src/domain/types.ts';
 import type { FailureClass } from '../src/domain/taxonomy.ts';
 import { AgentPolicy } from '../src/agent/agentPolicy.ts';
-import { buildModelChain } from '../src/agent/modelChain.ts';
+import { buildModelChain } from '../src/agent/model/chain.ts';
 import { believedChargeSuccess, believedCustomerAction } from '../src/agent/costModel.ts';
 import { get_customer_payment_history } from '../src/agent/tools.ts';
 import { buildAtRiskPopulation, World } from '../src/sim/population.ts';
