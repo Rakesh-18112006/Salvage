@@ -2,7 +2,7 @@
 
 **Razorpay AI Buildathon 2026 · Track 3: AI Revenue Recovery**
 
-**▶ Demo video: <!-- TODO: paste the YouTube URL here before submitting -->**
+**▶ Demo video: https://youtu.be/rrZ01C8ba-Q**
 
 > ### ⚠️ Everything in this repository runs against a SIMULATOR
 >
